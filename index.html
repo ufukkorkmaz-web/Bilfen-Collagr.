@@ -5,9 +5,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* Layout concept: a dark editor workbench. Media bin left, stage with transport centre, scene inspector right,
-   then a full-width template strip and a timeline. One warm gradient (Mix, Export) carries the energy;
-   everything else stays ink and glass. */
+/* Layout concept: a dark editor workbench that fits the viewport exactly. Header carries project settings,
+   media bin left, stage with transport centre, scene inspector right, timeline along the bottom.
+   One warm gradient (Mix, Export) carries the energy; everything else stays ink and glass. */
 :root{
   --bg:#0a0b10; --panel-solid:#151824; --panel-hi:rgba(255,255,255,.08);
   --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.18);
@@ -21,6 +21,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+html,body{height:100%}
 body{
   font-family:var(--f-body);font-size:14px;line-height:1.45;color:var(--fg);
   background-color:var(--bg);
@@ -28,9 +29,11 @@ body{
     radial-gradient(52rem 34rem at 8% -8%,rgba(255,79,139,.16),transparent 62%),
     radial-gradient(46rem 32rem at 100% 4%,rgba(110,231,240,.11),transparent 58%),
     radial-gradient(40rem 30rem at 50% 110%,rgba(139,92,246,.12),transparent 60%);
-  padding-left:max(16px,env(safe-area-inset-left,0px));
-  padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:14px 32px;
+  background-attachment:fixed;
+  padding-left:max(12px,env(safe-area-inset-left,0px));
+  padding-right:max(12px,env(safe-area-inset-right,0px));
+  padding-block:10px 28px;
+  overflow:hidden;
 }
 button,select,input{font:inherit;color:inherit}
 h2{font-family:var(--f-display);font-weight:800;font-size:15px;letter-spacing:.01em;margin:0;text-wrap:balance}
@@ -39,84 +42,101 @@ p{margin:0}
 .dim{color:var(--fg-3)}
 :focus-visible{outline:2px solid var(--cool);outline-offset:2px}
 
-.app{display:grid;gap:12px;max-width:1500px;margin:0 auto;
-  grid-template-columns:minmax(210px,250px) minmax(0,1fr) minmax(240px,290px);
-  grid-template-areas:"top top top" "media stage insp" "tl tl tl";align-items:start}
-.top{grid-area:top;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:2px 2px 4px}
-.media{grid-area:media}.stage{grid-area:stage}.insp{grid-area:insp;display:flex;flex-direction:column;gap:12px;min-width:0}
+.app{display:grid;gap:10px;max-width:1600px;margin:0 auto;height:100%;
+  grid-template-columns:minmax(200px,240px) minmax(0,1fr) minmax(240px,290px);
+  grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-areas:"top top top" "media stage insp" "tl tl tl";align-items:stretch}
+.top{grid-area:top;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:0 2px}
+.media{grid-area:media;display:flex;flex-direction:column;min-height:0}
+.stage{grid-area:stage}
+.insp{grid-area:insp;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0}
 .tl{grid-area:tl}
 @media (max-width:1020px){
-  .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "tl" "insp" "media"}
+  /* Narrow screens cannot fit everything at once, so the page scrolls as a fallback. */
+  body{overflow:auto;height:auto}
+  .app{height:auto;grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-template-areas:"top" "stage" "tl" "insp" "media"}
+  .stage .cvwrap{min-height:260px}
+  .media .mlist{max-height:240px}
 }
 .panel{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid var(--line);
-  border-radius:16px;padding:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);min-width:0}
-.ph-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  border-radius:16px;padding:12px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);min-width:0}
+.ph-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 
 .brand{display:flex;align-items:center;gap:10px}
-.logo{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:28px;height:28px}
+.logo{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:26px;height:26px}
 .logo i{display:block;background:var(--hot);border-radius:3px}
 .logo i:nth-child(2){background:var(--cool);border-radius:50% 3px 3px 3px}
 .logo i:nth-child(3){background:#8b7cff;border-radius:3px 3px 3px 50%}
-.wm{font-family:var(--f-display);font-weight:800;font-size:21px;letter-spacing:-.01em}
+.wm{font-family:var(--f-display);font-weight:800;font-size:20px;letter-spacing:-.01em}
 .spacer{flex:1}
 .seg-ctl{display:inline-flex;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
-.seg-ctl button{border:0;background:transparent;padding:6px 14px;border-radius:8px;cursor:pointer;color:var(--fg-2);font-family:var(--f-mono);font-size:12.5px}
+.seg-ctl button{border:0;background:transparent;padding:5px 12px;border-radius:8px;cursor:pointer;color:var(--fg-2);font-family:var(--f-mono);font-size:12.5px}
 .seg-ctl button[aria-pressed=true]{background:var(--panel-hi);color:var(--fg);box-shadow:0 0 0 1px var(--line-2) inset}
+.hsel{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg-2)}
 
-.btn{padding:9px 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-hi);cursor:pointer;color:var(--fg)}
+.btn{padding:8px 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-hi);cursor:pointer;color:var(--fg)}
 .btn:hover{background:rgba(255,255,255,.14)}
-.btn.sm{padding:6px 10px;font-size:12.5px}
+.btn.sm{padding:5px 10px;font-size:12.5px}
 .btn.hot{background:var(--hot);border:0;color:var(--on-hot);font-weight:700}
 .btn.hot:hover{filter:brightness(1.07)}
 .btn.danger{color:var(--err)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .lnk{background:none;border:0;color:var(--fg-2);cursor:pointer;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;padding:2px}
 .lnk:hover{color:var(--fg)}
-select{background:var(--panel-solid);border:1px solid var(--line-2);border-radius:8px;padding:6px 8px;max-width:100%;min-width:0}
+select{background:var(--panel-solid);border:1px solid var(--line-2);border-radius:8px;padding:5px 8px;max-width:100%;min-width:0}
 input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 
-.dropzone{display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;padding:16px 10px;border:1.5px dashed var(--line-2);
-  border-radius:12px;cursor:pointer;background:rgba(255,255,255,.025)}
+.dropzone{display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;padding:14px 10px;border:1.5px dashed var(--line-2);
+  border-radius:12px;cursor:pointer;background:rgba(255,255,255,.025);flex:none}
 .dropzone:hover{border-color:var(--cool);background:rgba(110,231,240,.05)}
 .dropzone b{font-family:var(--f-display);font-size:14px}.dropzone span{font-size:12px;color:var(--fg-3)}
-.hint{margin:10px 2px 0;font-size:12px;color:var(--warn)}
-.mlist{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:330px;overflow:auto}
-.mi{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px;border-radius:10px;background:rgba(255,255,255,.035)}
+.mlist{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow:auto}
+.mi{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px;border-radius:10px;background:rgba(255,255,255,.035);flex:none}
 .mi img{width:56px;height:36px;object-fit:cover;border-radius:6px;display:block;background:#000}
 .mi .nm{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mi .mt{font-size:11px;color:var(--fg-3)}
 .mi .x{border:0;background:none;color:var(--fg-3);cursor:pointer;font-size:18px;line-height:1;padding:4px 6px;border-radius:6px}
 .mi .x:hover{color:var(--err);background:rgba(255,255,255,.06)}
 
-.stage{display:flex;flex-direction:column;gap:12px}
-.cvwrap{position:relative;display:flex;justify-content:center;align-items:center;min-height:240px;background:#05060a;border-radius:12px;padding:10px;border:1px solid var(--line)}
-.cvwrap canvas{display:block;border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.55)}
-.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--fg-2);background:rgba(5,6,10,.82);border-radius:12px}
-.transport{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.round{width:42px;height:42px;border-radius:50%;border:0;background:var(--hot);color:var(--on-hot);cursor:pointer;display:grid;place-items:center;flex:none}
+.stage{display:flex;flex-direction:column;gap:10px;min-height:0}
+.cvwrap{position:relative;flex:1;min-height:0;background:#05060a;border-radius:12px;border:1px solid var(--line);overflow:hidden}
+.cvwrap canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+.empty{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:12px;
+  width:min(620px,calc(100% - 28px));padding:4px 4px 4px 16px;border-radius:999px;white-space:nowrap;
+  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.07));border:1px solid rgba(255,255,255,.28);
+  -webkit-backdrop-filter:blur(32px) saturate(1.7) brightness(1.1);backdrop-filter:blur(32px) saturate(1.7) brightness(1.1);
+  box-shadow:0 10px 34px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.4);font-size:12.5px;color:#f3f4fa}
+.empty .tag{font-family:var(--f-mono);font-size:11.5px;color:var(--cool);flex:none}
+.empty .msg{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#e4e7f2}
+.empty .btn{flex:none;padding:5px 14px;border-radius:999px}
+.transport{display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex:none}
+.round{width:40px;height:40px;border-radius:50%;border:0;background:var(--hot);color:var(--on-hot);cursor:pointer;display:grid;place-items:center;flex:none}
 .round:hover{filter:brightness(1.08)}
 #seek{flex:1 1 160px}
 .transport .mono{font-size:12.5px;color:var(--fg-2)}
 
-.fld{display:grid;grid-template-columns:86px minmax(0,1fr) auto;align-items:center;gap:10px;margin-bottom:10px}
+.fld{display:grid;grid-template-columns:86px minmax(0,1fr) auto;align-items:center;gap:10px;margin-bottom:8px}
 .fld>span{color:var(--fg-2);font-size:12.5px}
 .fld select{grid-column:2 / 4}
-.insp h2{margin-bottom:10px}
-.slots{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.insp h2{margin-bottom:8px}
+.scenepanel{flex:1;min-height:0;overflow:auto}
+.tplpanel{flex:none}
+.slots{display:flex;flex-direction:column;gap:8px;margin:10px 0}
 .slot{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:start}
 .slot img{width:52px;height:34px;object-fit:cover;border-radius:6px;background:#000}
 .slot select{width:100%}
 .mini{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:6px;font-size:11.5px;color:var(--fg-3)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
+.note{font-size:12.5px;color:var(--fg-2)}
 
 .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;overflow:auto;padding:2px;max-height:min(66vh,620px)}
 .tgrid .tcard{min-width:0;width:100%}
 .tmodal{width:min(940px,100%);max-height:calc(100vh - 32px);overflow:hidden}
 .tmodal .ph-row{margin-bottom:0}
-.tcur{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.tcur-face{flex:none;height:54px;min-width:54px;display:grid;place-items:center;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.05)}
-.tcur-face canvas{height:54px;width:auto;display:block}
-.tcur-face.mix{background:var(--hot)}.tcur-face.mix svg{width:26px;height:26px}
+.tcur{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.tcur-face{flex:none;height:46px;min-width:46px;display:grid;place-items:center;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.05)}
+.tcur-face canvas{height:46px;width:auto;display:block}
+.tcur-face.mix{background:var(--hot)}.tcur-face.mix svg{width:24px;height:24px}
 .tcur b{display:block;font-family:var(--f-display);font-size:15px}.tcur span.dim{font-size:12px}
 .tcard{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 8px 9px;min-width:132px;background:rgba(255,255,255,.04);
   border:1px solid var(--line);border-radius:12px;cursor:pointer;color:var(--fg)}
@@ -133,27 +153,30 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 .tcard.mix.spin .mixface svg{animation:spin .6s ease}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+.tl .ph-row{margin-bottom:6px}
+.tl .ph-row .tip{flex:1;font-size:12px;color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .zoom{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fg-3)}.zoom input{width:110px}
 .tlwrap{overflow-x:auto;overflow-y:hidden;border-radius:10px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
-.tlinner{position:relative;height:132px;min-width:100%}
-.ruler{position:absolute;left:0;right:0;top:0;height:26px;cursor:pointer;touch-action:none;border-bottom:1px solid var(--line)}
-.tick{position:absolute;top:0;height:26px;padding-left:4px;line-height:18px;font:11px var(--f-mono);color:var(--fg-3);border-left:1px solid var(--line-2);pointer-events:none}
-.track{position:absolute;left:0;right:0;top:26px;bottom:0;touch-action:none}
-.seg{position:absolute;top:14px;height:84px;border-radius:10px;overflow:hidden;background:var(--panel-solid);border:1px solid var(--line-2);
+.tlinner{position:relative;height:112px;min-width:100%}
+.ruler{position:absolute;left:0;right:0;top:0;height:24px;cursor:pointer;touch-action:none;border-bottom:1px solid var(--line)}
+.tick{position:absolute;top:0;height:24px;padding-left:4px;line-height:18px;font:11px var(--f-mono);color:var(--fg-3);border-left:1px solid var(--line-2);pointer-events:none}
+.track{position:absolute;left:0;right:0;top:24px;bottom:0;touch-action:none}
+.seg{position:absolute;top:6px;height:76px;border-radius:10px;overflow:hidden;background:var(--panel-solid);border:1px solid var(--line-2);
   border-top:3px solid hsl(var(--h) 85% 62%);cursor:grab;touch-action:none;user-select:none}
 .seg.sel{box-shadow:0 0 0 2px var(--cool)}
 .seg.drag{opacity:.88;z-index:5;cursor:grabbing}
-.seg-thumbs{display:flex;height:46px;background:#000;pointer-events:none}
+.seg-thumbs{display:flex;height:40px;background:#000;pointer-events:none}
 .seg-thumbs img{flex:1 1 0;min-width:0;height:100%;object-fit:cover;display:block}
 .seg-meta{display:flex;justify-content:space-between;gap:6px;padding:4px 8px;font-size:11.5px;pointer-events:none;white-space:nowrap;overflow:hidden}
 .seg-meta b{font-weight:600;overflow:hidden;text-overflow:ellipsis}.seg-meta span{color:var(--fg-3)}
 .seg-h{position:absolute;top:0;right:0;bottom:0;width:11px;cursor:ew-resize;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18))}
 .seg-h::after{content:"";position:absolute;top:30%;bottom:30%;right:4px;width:2px;border-radius:2px;background:rgba(255,255,255,.55)}
-.dropmark{position:absolute;top:8px;height:96px;width:3px;border-radius:2px;background:var(--hot-a);z-index:6;pointer-events:none}
+.dropmark{position:absolute;top:2px;height:84px;width:3px;border-radius:2px;background:var(--hot-a);z-index:6;pointer-events:none}
 .phead{position:absolute;top:0;bottom:0;left:0;width:2px;background:var(--cool);pointer-events:none;z-index:7}
 .phead::before{content:"";position:absolute;top:0;left:-5px;border:6px solid transparent;border-top-color:var(--cool);border-bottom:0}
 
+.foot{position:fixed;left:0;right:0;bottom:calc(7px + env(safe-area-inset-bottom,0px));text-align:center;font-size:11.5px;letter-spacing:.04em;color:var(--fg-3);pointer-events:none;z-index:5}
 .overlay{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(10,11,16,.78);border:3px dashed var(--cool);
   font-family:var(--f-display);font-size:24px;font-weight:800;pointer-events:none}
 .modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,6,10,.74);padding:16px}
@@ -161,7 +184,6 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 .bar{height:8px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:var(--hot)}
 .mcard video{width:100%;max-height:260px;background:#000;border-radius:10px}
-.note{font-size:12.5px;color:var(--fg-2)}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);opacity:0;pointer-events:none;
   background:#232738;border:1px solid var(--line-2);padding:9px 14px;border-radius:10px;font-size:13px;z-index:60;transition:.2s;max-width:92vw}
 .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -175,6 +197,10 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
       <button type="button" data-aspect="16:9" aria-pressed="true">16:9</button>
       <button type="button" data-aspect="9:16" aria-pressed="false">9:16</button>
     </div>
+    <label class="hsel">Length
+      <select id="lenSel" title="Sets how long the generated collage is. Changing it rebuilds the timeline."><option value="auto">Auto</option><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></label>
+    <label class="hsel">Quality <select id="resSel"><option value="720">720p</option><option value="1080">1080p</option></select></label>
+    <label class="hsel">Format <select id="fmtSel"></select></label>
     <div class="spacer"></div>
     <span class="mono dim" id="totLabel">0:00.0</span>
     <button type="button" class="btn hot" id="exportBtn">Export video</button>
@@ -184,14 +210,13 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
     <div class="ph-row"><h2>Media</h2><button type="button" class="lnk" id="clearBtn">Clear all</button></div>
     <label class="dropzone" id="dropzone" for="fileIn" tabindex="0"><b>Add videos and photos</b><span>Click to browse or drop files here</span></label>
     <input type="file" id="fileIn" accept="video/*,image/*" multiple hidden>
-    <p class="hint" id="sampleNote">These are sample images. Add your own and they are replaced.</p>
     <ul class="mlist" id="mlist"></ul>
   </section>
 
   <section class="panel stage" aria-label="Preview">
     <div class="cvwrap" id="cvwrap">
       <canvas id="cv" width="1280" height="720"></canvas>
-      <div class="empty" id="empty" hidden><div><h2>Nothing here yet</h2><p class="note" style="margin-top:6px">Add videos or photos and a collage builds itself.</p></div></div>
+      <div class="empty" id="empty"><span class="tag" id="demoTag">Mix showcase</span><span class="msg">Add videos or photos and your collage builds itself.</span><label class="btn hot sm" for="fileIn" style="cursor:pointer">Add media</label></div>
     </div>
     <div class="transport">
       <button type="button" class="round" id="playBtn" aria-label="Play"></button>
@@ -202,25 +227,18 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
   </section>
 
   <aside class="insp">
-    <section class="panel" aria-label="Project">
-      <h2>Project</h2>
-      <label class="fld"><span>Length</span>
-        <select id="lenSel"><option value="auto">Auto</option><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></label>
-      <label class="fld"><span>Quality</span><select id="resSel"><option value="720">720p</option><option value="1080">1080p</option></select></label>
-      <label class="fld"><span>Format</span><select id="fmtSel"></select></label>
-      <p class="note">Length sets how long the generated collage is. Changing it rebuilds the timeline.</p>
-    </section>
-    <section class="panel" aria-label="Scene"><h2>Scene</h2><div id="sceneBody"></div></section>
-    <section class="panel" aria-label="Templates">
+    <section class="panel tplpanel" aria-label="Templates">
       <h2>Templates</h2>
       <div class="tcur"><div class="tcur-face mix" id="tcurFace"></div><div><b id="tcurName">Mix</b><span class="dim" id="tcurSub">A different look for each scene</span></div></div>
       <div class="row"><button type="button" class="btn hot sm" id="mixBtn">Mix</button><button type="button" class="btn sm" id="browseBtn">Browse templates</button></div>
     </section>
+    <section class="panel scenepanel" aria-label="Scene"><h2>Scene</h2><div id="sceneBody"></div></section>
   </aside>
 
   <section class="panel tl" aria-label="Timeline">
     <div class="ph-row">
       <h2>Timeline</h2>
+      <span class="tip">Drag a scene to reorder, drag its right edge to resize, click the ruler to seek. Space plays, Delete removes.</span>
       <div class="tools">
         <button type="button" class="btn sm" id="addSceneBtn">Add scene</button>
         <button type="button" class="btn sm" id="regenBtn">Regenerate</button>
@@ -229,9 +247,10 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
       </div>
     </div>
     <div class="tlwrap" id="tlwrap"><div class="tlinner" id="tlinner"><div class="ruler" id="ruler"></div><div class="track" id="track"></div><div class="phead" id="phead"></div></div></div>
-    <p class="note" style="margin-top:8px">Drag a scene to reorder it, drag its right edge to change its length, click the ruler to move the playhead. Space plays and pauses, Delete removes the selected scene.</p>
   </section>
 </div>
+
+<footer class="foot">Ufuk Korkmaz - 2026</footer>
 
 <div class="overlay" id="dropOv" hidden>Drop to add to your reel</div>
 
@@ -282,11 +301,14 @@ const TRANS=[['fade','Fade'],['slide','Slide'],['zoom','Zoom'],['wipe','Wipe'],[
 const S={media:[],segs:[],sel:null,t:0,playing:false,exporting:false,aspect:'16:9',res:720,target:'auto',selTpl:'mix',pps:60,samples:[]};
 let dirty=true, frameNo=0;
 const cv=$('#cv'), ctx=cv.getContext('2d',{alpha:false});
-const mediaById=id=>S.media.find(m=>m.id===id);
+const DEMO={media:[],segs:[],t:0,total:1};
+const CALM=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+const demoOn=()=>!S.media.length&&!S.exporting&&DEMO.segs.length>0;
+const mediaById=id=>S.media.find(m=>m.id===id)||DEMO.media.find(m=>m.id===id);
 const segById=id=>S.segs.find(s=>s.id===id);
 const totalDur=()=>S.segs.reduce((a,s)=>a+s.dur,0);
 const starts=()=>{let a=0;return S.segs.map(s=>{const v=a;a+=s.dur;return v})};
-function locate(t){let a=0;for(let i=0;i<S.segs.length;i++){const s=S.segs[i];if(t<a+s.dur||i===S.segs.length-1)return{i,lt:clamp(t-a,0,s.dur)};a+=s.dur}return{i:0,lt:0}}
+function locate(t,segs=S.segs){let a=0;for(let i=0;i<segs.length;i++){const s=segs[i];if(t<a+s.dur||i===segs.length-1)return{i,lt:clamp(t-a,0,s.dur)};a+=s.dur}return{i:0,lt:0}}
 
 /* ---------- drawing helpers ---------- */
 function drawCover(c,src,dx,dy,dw,dh,zoom=1,px=0,py=0){
@@ -464,13 +486,14 @@ function drawSeg(c,seg,lt,W,H,resolver=srcFor){
   if(T.deco)T.deco(c,W,H,lt,p);
   T.layout(W,H,lt,p).forEach((it,i)=>drawItem(c,it,get(it.k==null?i:it.k)));
 }
-function renderAt(t){
+function renderAt(t){if(demoOn())renderSegs(DEMO.segs,DEMO.t,false);else renderSegs(S.segs,t,true)}
+function renderSegs(segs,t,live){
   frameNo++;
   const W=cv.width,H=cv.height;
-  if(!S.segs.length){ctx.fillStyle='#0b0c11';ctx.fillRect(0,0,W,H);return}
-  const loc=locate(t),seg=S.segs[loc.i],lt=loc.lt,TD=Math.min(.7,seg.dur*.4);
+  if(!segs.length){ctx.fillStyle='#0b0c11';ctx.fillRect(0,0,W,H);return}
+  const loc=locate(t,segs),seg=segs[loc.i],lt=loc.lt,TD=Math.min(.7,seg.dur*.4);
   if(loc.i>0&&lt<TD&&seg.trans!=='cut'){
-    const prev=S.segs[loc.i-1],e=eio(lt/TD);
+    const prev=segs[loc.i-1],e=eio(lt/TD);
     drawSeg(ctx,prev,prev.dur+lt,W,H);
     ctx.save();
     if(seg.trans==='slide')ctx.translate((1-e)*W,0);
@@ -479,10 +502,10 @@ function renderAt(t){
     else ctx.globalAlpha=e;
     drawSeg(ctx,seg,lt,W,H);ctx.restore();
   }else drawSeg(ctx,seg,lt,W,H);
-  if(S.playing&&lt>seg.dur-1.5&&S.segs[loc.i+1])warm(S.segs[loc.i+1]);
+  if(live&&S.playing&&lt>seg.dur-1.5&&segs[loc.i+1])warm(segs[loc.i+1]);
 }
 
-/* ---------- sample media ---------- */
+/* ---------- placeholder art (only used for the template preview thumbnails) ---------- */
 function makeThumb(src){const c=mk(160,90);drawCover(c.getContext('2d'),src,0,0,160,90);return c.toDataURL('image/jpeg',.72)}
 function makeSample(i){
   const port=i%3===2,w=port?720:1280,h=port?1280:720,c=mk(w,h),x=c.getContext('2d'),B=Math.min(w,h);
@@ -493,7 +516,6 @@ function makeSample(i){
     rg.addColorStop(0,`hsla(${(hh[0]+k*38)%360} 90% 70% / .55)`);rg.addColorStop(1,'hsla(0 0% 0% / 0)');x.fillStyle=rg;x.beginPath();x.arc(cx,cy,r,0,7);x.fill()}
   x.save();x.globalAlpha=.16;x.fillStyle='#fff';x.translate(w/2,h/2);x.rotate(-.5);for(let s=-12;s<12;s++)x.fillRect(-B*2,s*B*.09,B*4,B*.025);x.restore();
   x.fillStyle='rgba(255,255,255,.88)';x.beginPath();x.arc(w*(.3+rnd()*.4),h*(.28+rnd()*.2),B*.1,0,7);x.fill();
-  x.fillStyle='rgba(255,255,255,.82)';x.font=`500 ${Math.round(B*.032)}px "JetBrains Mono",monospace`;x.fillText('SAMPLE '+String(i+1).padStart(2,'0'),B*.05,h-B*.05);
   return c}
 
 /* ---------- importing media ---------- */
@@ -525,7 +547,6 @@ async function importFile(f){
 async function addFiles(list){
   const files=[...list].filter(f=>/^(image|video)\//.test(f.type)||/\.(mp4|mov|m4v|webm|jpe?g|png|gif|webp|avif|bmp)$/i.test(f.name));
   if(!files.length){toast('Those files are not videos or photos.');return}
-  if(S.media.length&&S.media.every(m=>m.sample))S.media=[];
   toast('Reading '+files.length+(files.length>1?' files':' file')+'...');
   let added=0;const bad=[];
   for(const f of files){try{S.media.push(await importFile(f));added++;renderMedia()}catch(e){bad.push(f.name)}}
@@ -581,8 +602,7 @@ function afterEdit(){
 
 /* ---------- UI: media list, templates ---------- */
 function renderMedia(){
-  $('#mlist').innerHTML=S.media.map(m=>`<li class="mi"><img src="${m.thumb}" alt=""><div style="min-width:0"><div class="nm">${esc(m.name)}</div><div class="mt mono">${m.type==='video'?'Video '+fmt(m.dur):'Photo '+m.w+'x'+m.h}</div></div><button type="button" class="x" data-rm="${m.id}" aria-label="Remove ${esc(m.name)}">&times;</button></li>`).join('');
-  $('#sampleNote').hidden=!(S.media.length&&S.media.every(m=>m.sample))}
+  $('#mlist').innerHTML=S.media.map(m=>`<li class="mi"><img src="${m.thumb}" alt=""><div style="min-width:0"><div class="nm">${esc(m.name)}</div><div class="mt mono">${m.type==='video'?'Video '+fmt(m.dur):'Photo '+m.w+'x'+m.h}</div></div><button type="button" class="x" data-rm="${m.id}" aria-label="Remove ${esc(m.name)}">&times;</button></li>`).join('')}
 const thumbRes=(seg,k)=>S.samples[(k+TPLS.findIndex(t=>t.id===seg.tpl))%S.samples.length];
 function drawThumb(c,id,lt){const x=c.getContext('2d');drawSeg(x,{tpl:id,dur:5,slots:[]},lt,c.width,c.height,thumbRes)}
 const mixIcon='<svg viewBox="0 0 24 24" fill="none" stroke="#1c0a12" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>';
@@ -689,7 +709,8 @@ function updateTransport(){
   const total=totalDur();
   $('#timeLbl').textContent=fmt(S.t)+' / '+fmt(total);
   $('#seek').value=total?Math.round(S.t/total*1000):0;
-  const loc=locate(S.t);$('#sceneLbl').textContent=S.segs.length?'Scene '+(loc.i+1)+' of '+S.segs.length:'No scenes';
+  if(demoOn()){const dl=locate(DEMO.t,DEMO.segs);$('#sceneLbl').textContent='Showcase: '+TPL[DEMO.segs[dl.i].tpl].name}
+  else{const loc=locate(S.t);$('#sceneLbl').textContent=S.segs.length?'Scene '+(loc.i+1)+' of '+S.segs.length:'No scenes'}
   const x=PAD+S.t*S.pps;phead.style.transform=`translateX(${x}px)`;
   if(S.playing&&!drag){const l=tlwrap.scrollLeft,w=tlwrap.clientWidth;if(x>l+w-20||x<l)tlwrap.scrollLeft=Math.max(0,x-w*.3)}}
 let last=performance.now();
@@ -699,18 +720,20 @@ function loop(now){
     S.t+=dt;const total=totalDur();
     if(S.t>=total){if(S.exporting){S.t=total;endExport()}else S.t=0}
     dirty=true}
+  if(demoOn()){if(!CALM)DEMO.t=(DEMO.t+dt)%DEMO.total;dirty=true}
   if(dirty){dirty=false;renderAt(S.t);updateTransport();if(S.exporting)updateExportUI()}
   requestAnimationFrame(loop)}
 $('#playBtn').addEventListener('click',()=>setPlaying(!S.playing));
 $('#seek').addEventListener('input',e=>{S.t=+e.target.value/1000*totalDur();dirty=true});
 
-/* ---------- canvas sizing ---------- */
+/* ---------- canvas sizing: always fit the stage, no page scrolling ---------- */
 function dims(){const h=S.res,w=Math.round(h*16/9/2)*2;return S.aspect==='16:9'?[w,h]:[h,w]}
 function setCanvasSize(){const d=dims();cv.width=d[0];cv.height=d[1];fitCanvas();dirty=true}
 function fitCanvas(){
-  const wrap=$('#cvwrap'),aw=Math.max(120,wrap.clientWidth-20),mh=Math.min(window.innerHeight*.56,560),sc=Math.min(aw/cv.width,mh/cv.height);
+  const wrap=$('#cvwrap'),aw=Math.max(120,wrap.clientWidth-20),ah=Math.max(90,wrap.clientHeight-20),sc=Math.min(aw/cv.width,ah/cv.height);
   cv.style.width=Math.floor(cv.width*sc)+'px';cv.style.height=Math.floor(cv.height*sc)+'px'}
-let lastW=0;new ResizeObserver(()=>{const w=$('#cvwrap').clientWidth;if(w!==lastW){lastW=w;fitCanvas()}renderTimeline()}).observe($('#cvwrap'));
+new ResizeObserver(()=>{fitCanvas()}).observe($('#cvwrap'));
+new ResizeObserver(()=>{renderTimeline()}).observe($('#tlwrap'));
 window.addEventListener('resize',()=>{fitCanvas();renderTimeline()});
 
 /* ---------- export ---------- */
@@ -801,15 +824,16 @@ window.addEventListener('dragleave',()=>{dragN=Math.max(0,dragN-1);if(!dragN)$('
 window.addEventListener('dragover',e=>e.preventDefault());
 window.addEventListener('drop',e=>{e.preventDefault();dragN=0;$('#dropOv').hidden=true;if(e.dataTransfer&&e.dataTransfer.files.length)addFiles(e.dataTransfer.files)});
 
-/* ---------- start ---------- */
+/* ---------- start (empty project plays the looping Mix showcase) ---------- */
 function init(){
-  S.samples=[0,1,2,3,4,5].map(makeSample);
-  S.media=S.samples.map((c,i)=>({id:uid('m'),type:'image',name:'Sample '+(i+1),src:c,w:c.width,h:c.height,thumb:makeThumb(c),sample:true}));
+  S.samples=[0,1,2,3,4,5].map(makeSample); /* placeholder art for template previews only, never added to the project */
+  /* Mix showcase: every template once, in random order, looping while the project is empty */
+  DEMO.media=S.samples.map((c,i)=>({id:'demo-m'+i,type:'image',src:c}));
+  DEMO.segs=shuffleArr(TPLS.map(t=>t.id)).map((tid,i)=>({id:'demo-s'+i,tpl:tid,dur:4,trans:i===0?'fade':pick(['fade','slide','zoom','wipe']),
+    slots:Array.from({length:TPL[tid].n},(_,j)=>({m:DEMO.media[(i*2+j)%DEMO.media.length].id,start:0}))}));
+  DEMO.total=DEMO.segs.reduce((a,s)=>a+s.dur,0);DEMO.t=CALM?9:0;
   detectFormats();setCanvasSize();buildTplStrip();renderMedia();
-  autoGenerate();fitView();
-  S.t=1.6;
-  const calm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  setPlaying(!calm);requestAnimationFrame(loop)}
+  afterEdit();fitView();setPlaying(false);requestAnimationFrame(loop)}
 init();
 })();
 </script>
