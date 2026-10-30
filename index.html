@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Bilfen Collagr.</title>
+<title>Bilfen Collagr</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,7 +77,32 @@ p{margin:0}
 .btn:hover{background:rgba(255,255,255,.14)}
 .btn.sm{padding:5px 10px;font-size:12.5px}
 .btn.hot{background:var(--hot);border:0;color:var(--on-hot);font-weight:700}
-.btn.hot:hover{filter:brightness(1.07)}
+/* Button motion: hot buttons and the play button crossfade to a blue gradient on hover (a gradient cannot be transitioned directly, so an overlay fades in) */
+.btn,.round,.tcard,.seg-ctl button,.lnk{transition:transform .18s cubic-bezier(.2,.8,.2,1),background-color .2s,border-color .2s,color .2s,box-shadow .25s}
+.btn:not(:disabled):hover{transform:translateY(-1px)}
+.btn:not(:disabled):active{transform:translateY(0) scale(.96)}
+.btn,.round{position:relative;overflow:hidden;isolation:isolate;--mx:50%;--my:50%}
+/* Gradient buttons: a blue-violet gradient blooms outward from the cursor, keeps flowing, and a light sheen sweeps across once */
+.btn.hot::before,.round::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(115deg,#5ad7ff,#4f6bff,#8b7cff,#ff6bd6,#5ad7ff);background-size:300% 100%;
+  clip-path:circle(0% at var(--mx) var(--my));transition:clip-path .6s cubic-bezier(.2,.8,.2,1)}
+.btn.hot:not(:disabled):hover::before,.round:hover::before,.btn.hot:focus-visible::before,.round:focus-visible::before{clip-path:circle(150% at var(--mx) var(--my));animation:flow 3.2s linear infinite}
+@keyframes flow{to{background-position:-300% 0}}
+.btn.hot::after,.round::after{content:"";position:absolute;top:-25%;bottom:-25%;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(0) skewX(-18deg);opacity:0;pointer-events:none}
+.btn.hot:not(:disabled):hover::after,.round:hover::after{animation:sheen .9s .12s cubic-bezier(.3,.7,.2,1)}
+@keyframes sheen{0%{opacity:0;transform:translateX(0) skewX(-18deg)}20%{opacity:1}100%{opacity:0;transform:translateX(430%) skewX(-18deg)}}
+.btn.hot:not(:disabled):hover,.round:hover{color:#fff;box-shadow:0 8px 24px rgba(79,107,255,.45)}
+/* Other buttons: a soft cyan-violet spotlight follows the cursor inside the button */
+.btn:not(.hot)::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(90px circle at var(--mx) var(--my),rgba(110,231,240,.34),rgba(139,124,255,.14) 55%,transparent 78%);opacity:0;transition:opacity .3s}
+.btn:not(.hot):not(:disabled):hover::before{opacity:1}
+.btn:not(.hot):not(:disabled):hover{border-color:rgba(110,231,240,.55)}
+@media (prefers-reduced-motion:reduce){.btn.hot::before,.round::before,.btn:not(.hot)::before{transition:none!important;animation:none!important}.btn.hot::after,.round::after{display:none}}
+.round:hover{transform:scale(1.08)}
+.round:active{transform:scale(.93)}
+.tcard:hover{transform:translateY(-3px)}
+.tcard:not([aria-pressed=true]):hover{border-color:rgba(110,231,240,.5);box-shadow:0 12px 28px rgba(0,0,0,.4)}
+.tcard:active{transform:scale(.98)}
+.lnk:hover{transform:translateY(-1px)}
+@media (prefers-reduced-motion:reduce){.btn,.round,.tcard,.seg-ctl button,.lnk{transition:none!important}.btn:hover,.round:hover,.tcard:hover,.lnk:hover,.btn:active,.round:active,.tcard:active{transform:none!important}}
 .btn.danger{color:var(--err)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .lnk{background:none;border:0;color:var(--fg-2);cursor:pointer;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;padding:2px}
@@ -89,6 +114,17 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
   border-radius:12px;cursor:pointer;background:rgba(255,255,255,.025);flex:none}
 .dropzone:hover{border-color:var(--cool);background:rgba(110,231,240,.05)}
 .dropzone b{font-family:var(--f-display);font-size:14px}.dropzone span{font-size:12px;color:var(--fg-3)}
+/* Add media zone: same bloom, flow and sheen as the gradient buttons */
+.dropzone{position:relative;overflow:hidden;isolation:isolate;--mx:50%;--my:50%;transition:transform .18s cubic-bezier(.2,.8,.2,1),border-color .25s,box-shadow .25s}
+.dropzone b,.dropzone span{transition:color .3s}
+.dropzone::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(115deg,#5ad7ff,#4f6bff,#8b7cff,#ff6bd6,#5ad7ff);background-size:300% 100%;opacity:.92;
+  clip-path:circle(0% at var(--mx) var(--my));transition:clip-path .7s cubic-bezier(.2,.8,.2,1)}
+.dropzone:hover::before,.dropzone:focus-visible::before{clip-path:circle(150% at var(--mx) var(--my));animation:flow 3.2s linear infinite}
+.dropzone::after{content:"";position:absolute;top:-25%;bottom:-25%;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(0) skewX(-18deg);opacity:0;pointer-events:none}
+.dropzone:hover::after{animation:sheen 1s .12s cubic-bezier(.3,.7,.2,1)}
+.dropzone:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.6);box-shadow:0 8px 24px rgba(79,107,255,.4)}
+.dropzone:hover b,.dropzone:hover span{color:#fff}
+@media (prefers-reduced-motion:reduce){.dropzone,.dropzone b,.dropzone span,.dropzone::before{transition:none!important;animation:none!important}.dropzone:hover{transform:none}.dropzone::after{display:none}}
 .mlist{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow:auto}
 .mi{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px;border-radius:10px;background:rgba(255,255,255,.035);flex:none}
 .mi img{width:56px;height:36px;object-fit:cover;border-radius:6px;display:block;background:#000}
@@ -110,7 +146,6 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 .empty .btn{flex:none;padding:5px 14px;border-radius:999px}
 .transport{display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex:none}
 .round{width:40px;height:40px;border-radius:50%;border:0;background:var(--hot);color:var(--on-hot);cursor:pointer;display:grid;place-items:center;flex:none}
-.round:hover{filter:brightness(1.08)}
 #seek{flex:1 1 160px}
 .transport .mono{font-size:12.5px;color:var(--fg-2)}
 
@@ -191,7 +226,7 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 
 <div class="app">
   <header class="top">
-    <div class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="wm">Bilfen Collagr.</span></div>
+    <div class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="wm">Bilfen Collagr</span></div>
     <div class="seg-ctl" role="group" aria-label="Aspect ratio">
       <button type="button" data-aspect="16:9" aria-pressed="true">16:9</button>
       <button type="button" data-aspect="9:16" aria-pressed="false">9:16</button>
@@ -846,7 +881,7 @@ function finishExport(){
   openModal('Your video is ready',fmt(totalDur())+' long, '+mb+' MB, '+X.fmt.ext.toUpperCase()+'.',[{id:'save',label:'Save video',cls:'hot'},{id:'close',label:'Close'}],`<video src="${url}" controls playsinline></video>`);
   $('#exBar').style.width='100%'}
 async function saveVideo(){
-  if(!X||!X.blob)return;const name='mosaic-reel.'+X.fmt.ext;
+  if(!X||!X.blob)return;const name='bilfen-collagr-reel.'+X.fmt.ext;
   try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
     if(dl){await dl.save({filename:name,data:X.blob});toast('Saved '+name);return}
   }catch(e){if(e&&e.code==='declined')return;toast('Could not save that way. Trying a plain download.')}
@@ -860,6 +895,9 @@ $('#exBtns').addEventListener('click',e=>{const id=e.target.dataset.x;if(!id)ret
 $('#exportBtn').addEventListener('click',startExport);
 
 /* ---------- wiring ---------- */
+/* feed the cursor position to buttons so hover effects can bloom from where you point */
+document.addEventListener('pointermove',e=>{const b=e.target.closest&&e.target.closest('.btn,.round,.dropzone');if(!b)return;
+  const r=b.getBoundingClientRect();b.style.setProperty('--mx',(e.clientX-r.left)+'px');b.style.setProperty('--my',(e.clientY-r.top)+'px')});
 let toastTm;function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTm);toastTm=setTimeout(()=>t.classList.remove('on'),3200)}
 $('#fileIn').addEventListener('change',e=>{addFiles(e.target.files);e.target.value=''});
 $('#dropzone').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#fileIn').click()}});
