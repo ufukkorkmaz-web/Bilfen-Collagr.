@@ -71,6 +71,32 @@ p{margin:0}
 .wm{font-family:var(--f-display);font-weight:800;font-size:20px;letter-spacing:-.01em}
 .wm-dot{display:inline-block;width:2px;height:.82em;margin-left:4px;vertical-align:-.08em;border-radius:1px;background:var(--hot-a);animation:dotfade 1.2s ease-in-out infinite}
 @keyframes dotfade{0%,100%{opacity:0}50%{opacity:1}}
+
+/* ---------- opening animation: logo assembles in the centre, the name types out, then it flies to the header and the page loads ---------- */
+.intro-brand{display:none}
+html.intro .intro-brand{display:flex;position:fixed;left:50%;top:50%;z-index:100;transform:translate(-50%,-50%) scale(var(--s,2.4));transform-origin:50% 50%;white-space:nowrap}
+html.intro:not(.reveal) .app>*:not(.top),html.intro:not(.reveal) .top>*:not(.brand),html.intro:not(.reveal) .foot{opacity:0;pointer-events:none}
+html.intro .intro-brand{pointer-events:none}
+html.brandin .top .brand{animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
+html.intro .top .brand{visibility:hidden}
+.intro-brand .wm{display:none}
+.intro-brand.typing .wm{display:inline}
+.intro-brand .wm-dot{animation:none;opacity:0}
+.intro-brand.typing .wm-dot{animation:dotfade 1.2s ease-in-out infinite}
+.intro-brand .logo i{animation:boxin .7s cubic-bezier(.2,.9,.3,1.25) both}
+.intro-brand .logo i:nth-child(1){--fx:-34px;--fy:-34px;animation-delay:.05s}
+.intro-brand .logo i:nth-child(2){--fx:34px;--fy:-34px;animation-delay:.18s}
+.intro-brand .logo i:nth-child(3){--fx:-34px;--fy:34px;animation-delay:.31s}
+.intro-brand .logo i:nth-child(4){--fx:34px;--fy:34px;animation-delay:.44s}
+@keyframes boxin{from{opacity:0;transform:translate(var(--fx),var(--fy)) scale(.2) rotate(140deg)}to{opacity:1;transform:none}}
+html.reveal .top>*:not(.brand),html.reveal .app>*:not(.top),html.reveal .foot{animation:rise .8s cubic-bezier(.2,.8,.2,1) both}
+html.reveal .app>.media{animation-delay:.08s}
+html.reveal .app>.stage{animation-delay:.14s}
+html.reveal .app>.insp{animation-delay:.2s}
+html.reveal .app>.tl{animation-delay:.28s}
+html.reveal .foot{animation-delay:.4s}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+html.calm.reveal .top>*,html.calm.reveal .app>*,html.calm.reveal .foot,html.calm.brandin .top .brand{animation:none!important}
 @media (prefers-reduced-motion:reduce){.wm-dot{animation:none}}
 .spacer{flex:1}
 .seg-ctl{display:inline-flex;padding:3px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
@@ -229,6 +255,7 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}.tcard.mix.spin .mixface svg{animation:none}}
 </style>
 
+<script>(function(){var r=document.documentElement;try{r.classList.add('intro');if(matchMedia('(prefers-reduced-motion: reduce)').matches)r.classList.add('calm');setTimeout(function(){if(!window.__introAlive){r.classList.add('reveal','brandin');r.classList.remove('intro')}},4000)}catch(e){}})()</script>
 <div class="app">
   <header class="top">
     <div class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="wm">Bilfen Collagr<span class="wm-dot" aria-hidden="true"></span></span></div>
@@ -291,6 +318,7 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 </div>
 
 <footer class="foot">Ufuk Korkmaz - 2026</footer>
+<div class="brand intro-brand" id="introBrand" aria-hidden="true"><span class="logo"><i></i><i></i><i></i><i></i></span><span class="wm"><span id="introText"></span><span class="wm-dot"></span></span></div>
 
 <div class="overlay" id="dropOv" hidden>Drop to add to your reel</div>
 
@@ -313,8 +341,6 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div id="vpool" style="position:fixed;left:-9999px;top:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none" aria-hidden="true"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5/build/mp4-muxer.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/webm-muxer@5/build/webm-muxer.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -901,10 +927,11 @@ $('#exportBtn').addEventListener('click',startExport);
 
 /* ---------- wiring ---------- */
 /* logo: the four boxes travel clockwise one slot every second, turning as they go */
-(()=>{const bx=[...document.querySelectorAll('.logo i')],P=[[0,0],[14.5,0],[14.5,14.5],[0,14.5]],slot=[0,1,3,2];let step=0;
+let logoGo=null;
+(()=>{const bx=[...document.querySelectorAll('.top .logo i')],P=[[0,0],[14.5,0],[14.5,14.5],[0,14.5]],slot=[0,1,3,2];let step=0;
   const put=()=>bx.forEach((b,i)=>{const p=P[slot[i]],q=P[[0,1,3,2][i]];b.style.transform='translate('+(p[0]-q[0])+'px,'+(p[1]-q[1])+'px) rotate('+step*90+'deg)'});
   if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  setInterval(()=>{if(document.hidden)return;step++;for(let i=0;i<4;i++)slot[i]=(slot[i]+1)%4;put()},1000)})();
+  logoGo=()=>setInterval(()=>{if(document.hidden)return;step++;for(let i=0;i<4;i++)slot[i]=(slot[i]+1)%4;put()},1000)})();
 /* feed the cursor position to buttons so hover effects can bloom from where you point */
 document.addEventListener('pointermove',e=>{const b=e.target.closest&&e.target.closest('.btn,.round,.dropzone');if(!b)return;
   const r=b.getBoundingClientRect();b.style.setProperty('--mx',(e.clientX-r.left)+'px');b.style.setProperty('--my',(e.clientY-r.top)+'px')});
@@ -956,6 +983,46 @@ function init(){
   detectFormats();setCanvasSize();buildTplStrip();renderMedia();
   afterEdit();fitView();setPlaying(false);requestAnimationFrame(loop)}
 init();
+/* video-export helpers load in the background so they can never hold up the page or the opening animation */
+Promise.all(['https://cdn.jsdelivr.net/npm/mp4-muxer@5/build/mp4-muxer.js','https://cdn.jsdelivr.net/npm/webm-muxer@5/build/webm-muxer.js'].map(u=>new Promise(r=>{
+  const e=document.createElement('script');e.src=u;e.async=true;e.onload=e.onerror=()=>r();document.head.appendChild(e)}))).then(()=>detectFormats()).catch(()=>{});
+
+/* ---------- opening animation (see the CSS above) ---------- */
+(()=>{
+  const root=document.documentElement,wait=ms=>new Promise(r=>setTimeout(r,ms));
+  if(!root.classList.contains('intro')){if(logoGo)logoGo();return}
+  window.__introAlive=1;
+  const calm=root.classList.contains('calm');
+  const cl=$('#introBrand'),txt=$('#introText'),word='Bilfen Collagr';let t0=0,guard=0;
+  let done=false;
+  const finish=()=>{if(done)return;done=true;clearTimeout(guard);root.classList.remove('intro');root.classList.add('reveal','brandin');if(logoGo)logoGo()};
+  /* wait until the page is really on screen, so a preview loaded in the background does not play the opening unseen */
+  const onScreen=()=>new Promise(res=>{const go=()=>Promise.race([new Promise(r=>requestAnimationFrame(()=>r())),wait(1500)]).then(res);
+    if(!document.hidden)go();else document.addEventListener('visibilitychange',function f(){if(!document.hidden){document.removeEventListener('visibilitychange',f);go()}})});
+  (async()=>{
+    try{
+      await onScreen();guard=setTimeout(finish,9500);
+      await Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),wait(1500)]);
+      const s=Math.min(2.8,Math.max(1.5,innerWidth/520));
+      cl.style.setProperty('--s',s);
+      await wait(800);                                   /* logo boxes fly in and assemble */
+      cl.classList.add('typing');                        /* cursor appears */
+      await wait(350);
+      for(const ch of word){txt.textContent+=ch;await wait(26+Math.random()*26)}   /* fast typing */
+      await wait(550);                                   /* cursor blinks at the end of the name */
+      if(calm){cl.animate([{opacity:1},{opacity:0}],{duration:350,fill:'forwards'});root.classList.add('reveal');await wait(380);finish();return}
+      /* the name fades, the logo spins toward the centre and grows until its boxes pass the screen borders */
+      const lg=cl.querySelector('.logo'),tx=cl.querySelector('.wm');
+      tx.animate([{opacity:1},{opacity:0}],{duration:240,easing:'ease-in',fill:'forwards'});
+      const lr=lg.getBoundingClientRect(),dx=(innerWidth/2-(lr.left+lr.width/2))/s,dy=(innerHeight/2-(lr.top+lr.height/2))/s;
+      const k=Math.max(innerWidth,innerHeight)*1.2/(26*s);
+      const end='translate('+dx+'px,'+dy+'px) rotate(180deg) scale('+k+')';
+      await Promise.race([lg.animate([{transform:'translate(0px,0px) rotate(0deg) scale(1)'},{transform:end}],{duration:1050,easing:'cubic-bezier(.75,0,.25,1)',fill:'forwards'}).finished,wait(1500)]);
+      root.classList.add('reveal');                      /* boxes have reached the borders: the website appears */
+      await Promise.race([lg.animate([{transform:end,opacity:1},{transform:'translate('+dx+'px,'+dy+'px) rotate(270deg) scale('+(k*2.6)+')',opacity:0}],{duration:700,easing:'cubic-bezier(.3,.6,.3,1)',fill:'forwards'}).finished,wait(1100)]);
+    }catch(e){console.error(e)}
+    finish()})();
+})();
 })();
 </script>
 
