@@ -46,7 +46,22 @@ p{margin:0}
   grid-template-rows:auto minmax(0,1fr) auto;
   grid-template-areas:"top top top" "media stage insp" "tl tl tl";align-items:stretch}
 .top{grid-area:top;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:0 2px}
-.media{grid-area:media;display:flex;flex-direction:column;min-height:0}
+.left{grid-area:media;display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0}
+.media{display:flex;flex-direction:column;min-height:0;flex:1}
+.sound{flex:none;display:flex;flex-direction:column;gap:8px}
+.sound .ph-row{margin-bottom:0}
+.strack{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 8px;border-radius:9px;background:rgba(255,255,255,.04);font-size:12px;color:var(--fg-2)}
+.strack svg{flex:none;width:14px;height:14px;color:var(--cool)}
+.strack b{font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.strack .mono{font-size:11px;flex:none}
+.vol{display:grid;grid-template-columns:42px minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:12px;color:var(--fg-2)}
+.vol output{font-family:var(--f-mono);font-size:11px;color:var(--fg-3);text-align:right}
+.chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--fg-2);cursor:pointer}
+.chk input{accent-color:var(--cool);width:15px;height:15px;margin:0;flex:none}
+.chk input:disabled+span{opacity:.5}
+.tlinner.hasmusic{height:140px}
+.wave{position:absolute;left:0;bottom:3px;display:none;pointer-events:none}
+.hasmusic .wave{display:block}
 .stage{grid-area:stage}
 .insp{grid-area:insp;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0}
 .tl{grid-area:tl}
@@ -90,7 +105,7 @@ html.intro .top .brand{visibility:hidden}
 .intro-brand .logo i:nth-child(4){--fx:34px;--fy:34px;animation-delay:.44s}
 @keyframes boxin{from{opacity:0;transform:translate(var(--fx),var(--fy)) scale(.2) rotate(140deg)}to{opacity:1;transform:none}}
 html.reveal .top>*:not(.brand),html.reveal .app>*:not(.top),html.reveal .foot{animation:rise .8s cubic-bezier(.2,.8,.2,1) both}
-html.reveal .app>.media{animation-delay:.08s}
+html.reveal .app>.left{animation-delay:.08s}
 html.reveal .app>.stage{animation-delay:.14s}
 html.reveal .app>.insp{animation-delay:.2s}
 html.reveal .app>.tl{animation-delay:.28s}
@@ -275,12 +290,25 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
     <button type="button" class="btn hot" id="exportBtn">Export video</button>
   </header>
 
+  <div class="left">
   <section class="panel media" aria-label="Media">
     <div class="ph-row"><h2>Media</h2><button type="button" class="lnk" id="clearBtn">Clear all</button></div>
     <label class="dropzone" id="dropzone" for="fileIn" tabindex="0"><b>Add videos and photos</b><span>Click to browse or drop files here</span></label>
     <input type="file" id="fileIn" accept="video/*,image/*" multiple hidden>
     <ul class="mlist" id="mlist"></ul>
   </section>
+
+  <section class="panel sound" aria-label="Sound">
+    <div class="ph-row"><h2>Sound</h2><button type="button" class="lnk" id="musicRm" hidden>Remove music</button></div>
+    <div class="strack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><b id="strackName">No music</b><span class="mono dim" id="strackMeta"></span></div>
+    <label class="btn sm" for="audioIn" style="text-align:center">Add music file</label>
+    <input type="file" id="audioIn" accept="audio/*" hidden>
+    <label class="vol" title="Music volume">Music<input type="range" id="mVol" min="0" max="100" value="80" aria-label="Music volume"><output id="mVolO">80%</output></label>
+    <label class="vol" title="Original sound of your video clips">Clips<input type="range" id="cVol" min="0" max="100" value="0" aria-label="Clip sound volume"><output id="cVolO">Off</output></label>
+    <label class="chk"><input type="checkbox" id="beatChk" disabled><span>Cut on the beat</span><span class="mono dim" id="bpmLbl"></span></label>
+    <label class="chk"><input type="checkbox" id="fadeChk" checked><span>Fade in and out</span></label>
+  </section>
+  </div>
 
   <section class="panel stage" aria-label="Preview">
     <div class="cvwrap" id="cvwrap">
@@ -315,7 +343,7 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
         <button type="button" class="btn sm" id="fitBtn">Fit</button>
       </div>
     </div>
-    <div class="tlwrap" id="tlwrap"><div class="tlinner" id="tlinner"><div class="ruler" id="ruler"></div><div class="track" id="track"></div><div class="phead" id="phead"></div></div></div>
+    <div class="tlwrap" id="tlwrap"><div class="tlinner" id="tlinner"><div class="ruler" id="ruler"></div><div class="track" id="track"></div><canvas class="wave" id="wave"></canvas><div class="phead" id="phead"></div></div></div>
   </section>
 </div>
 
@@ -368,7 +396,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 /* ---------- state ---------- */
 const MAX_TOTAL=300, PAD=14;
 const TRANS=[['fade','Fade'],['slide','Slide'],['zoom','Zoom'],['wipe','Wipe'],['cut','Cut']];
-const S={media:[],segs:[],sel:null,t:0,playing:false,exporting:false,aspect:'16:9',res:720,target:'auto',selTpl:'mix',pps:60,samples:[]};
+const S={media:[],segs:[],sel:null,t:0,playing:false,exporting:false,aspect:'16:9',res:720,target:'auto',selTpl:'mix',pps:60,samples:[],music:null,mVol:.8,cVol:0,fade:true,sync:false};
 let dirty=true, frameNo=0;
 const cv=$('#cv'), ctx=cv.getContext('2d',{alpha:false});
 const DEMO={media:[],segs:[],t:0,total:1};
@@ -561,6 +589,7 @@ const TPLS=[
 const TPL=Object.fromEntries(TPLS.map(t=>[t.id,t]));
 
 /* ---------- video pool ---------- */
+let muteVid=false;
 const pool=new Map(), vpoolEl=$('#vpool');
 function evict(){let ok=null,min=Infinity;
   for(const [k,e] of pool){if(e.last<frameNo&&e.last<min){min=e.last;ok=k}}
@@ -577,12 +606,15 @@ function dropPooled(mid){for(const [k,e] of pool){if(k.endsWith(':'+mid)){e.v.pa
 function syncVideo(v,m,want){
   if(v.readyState===0)return;
   const d=m.dur||v.duration||1,tt=d>.2?((want%d)+d)%d:0,drift=Math.abs(v.currentTime-tt);
-  if(S.playing){if(v.paused)v.play().catch(()=>{});if(drift>.4&&!v.seeking)v.currentTime=tt}
+  if(S.playing){if(v.paused)v.play().catch(()=>{v._silent=true;v.muted=true;v.play().catch(()=>{})});if(drift>.4&&!v.seeking)v.currentTime=tt}
   else{if(!v.paused)v.pause();if(drift>.03&&!v.seeking)v.currentTime=tt}}
 function srcFor(seg,k,lt){
   const sl=seg.slots[k];if(!sl)return null;const m=mediaById(sl.m);if(!m)return null;
   if(m.type==='image')return m.src;
-  const v=getVideo(seg.id+':'+k+':'+m.id,m);syncVideo(v,m,sl.start+lt);return v}
+  const v=getVideo(seg.id+':'+k+':'+m.id,m);
+  const nv=seg.slots.slice(0,TPL[seg.tpl].n).filter(q=>{const mm=mediaById(q.m);return mm&&mm.type==='video'}).length||1;
+  v.muted=!!v._silent||muteVid||!(S.cVol>0);v.volume=clamp(S.cVol/Math.sqrt(nv),0,1);
+  syncVideo(v,m,sl.start+lt);return v}
 function warm(seg){const T=TPL[seg.tpl];
   for(let k=0;k<T.n;k++){const sl=seg.slots[k],m=sl&&mediaById(sl.m);
     if(m&&m.type==='video'){const v=getVideo(seg.id+':'+k+':'+m.id,m),t0=sl.start%(m.dur||1);if(v.readyState>0&&v.paused&&Math.abs(v.currentTime-t0)>.3&&!v.seeking)v.currentTime=t0}}}
@@ -603,7 +635,7 @@ function renderSegs(segs,t,live){
   const loc=locate(t,segs),seg=segs[loc.i],lt=loc.lt,TD=Math.min(.7,seg.dur*.4);
   if(loc.i>0&&lt<TD&&seg.trans!=='cut'){
     const prev=segs[loc.i-1],e=eio(lt/TD);
-    drawSeg(ctx,prev,prev.dur+lt,W,H);
+    muteVid=true;drawSeg(ctx,prev,prev.dur+lt,W,H);muteVid=false;
     ctx.save();
     if(seg.trans==='slide')ctx.translate((1-e)*W,0);
     else if(seg.trans==='zoom'){ctx.globalAlpha=e;ctx.translate(W/2,H/2);const z=1.12-.12*e;ctx.scale(z,z);ctx.translate(-W/2,-H/2)}
@@ -612,6 +644,7 @@ function renderSegs(segs,t,live){
     drawSeg(ctx,seg,lt,W,H);ctx.restore();
   }else drawSeg(ctx,seg,lt,W,H);
   if(live&&S.playing&&lt>seg.dur-1.5&&segs[loc.i+1])warm(segs[loc.i+1]);
+  if(live&&S.playing)for(const e of pool.values())if(e.last!==frameNo&&!e.v.paused)e.v.pause();
 }
 
 /* ---------- placeholder art (only used for the template preview thumbnails) ---------- */
@@ -703,6 +736,7 @@ function applyAll(id){
   S.segs.forEach(s=>{s.tpl=id;fitSlots(s)});S.selTpl=id;afterEdit();S.t=0;setPlaying(true)}
 function delSeg(id){S.segs=S.segs.filter(s=>s.id!==id);if(S.sel===id)S.sel=null;afterEdit()}
 function afterEdit(){
+  if(S.sync&&beatPeriod())snapAll(beatPeriod());
   S.t=clamp(S.t,0,totalDur());
   if(S.sel&&!segById(S.sel))S.sel=null;
   if(S.segs.length)S.selTpl=S.segs.every(s=>s.tpl===S.segs[0].tpl)?S.segs[0].tpl:'mix';
@@ -751,7 +785,7 @@ function renderInspector(){
 function seekToSeg(seg){const i=S.segs.indexOf(seg),st=starts()[i];if(S.t<st||S.t>=st+seg.dur){S.t=st+Math.min(.9,seg.dur*.5);dirty=true}}
 $('#sceneBody').addEventListener('input',e=>{
   const seg=segById(S.sel),f=e.target.dataset.f;if(!seg||!f)return;
-  if(f==='dur'){const others=totalDur()-seg.dur;seg.dur=clamp(+e.target.value,1.5,Math.min(30,MAX_TOTAL-others));e.target.value=seg.dur;
+  if(f==='dur'){const others=totalDur()-seg.dur;seg.dur=clamp(snapDur(+e.target.value),1.5,Math.min(30,MAX_TOTAL-others));e.target.value=seg.dur;
     $('#sceneBody [data-o="dur"]').textContent=seg.dur.toFixed(1)+'s';renderTimeline();updateTotals();dirty=true}
   else if(f==='start'){const k=+e.target.dataset.k;seg.slots[k].start=+e.target.value;$('#sceneBody [data-o="start'+k+'"]').textContent=(+e.target.value).toFixed(1)+'s';seekToSeg(seg);dirty=true}});
 $('#sceneBody').addEventListener('change',e=>{
@@ -776,7 +810,7 @@ function renderTimeline(){
   ruler.innerHTML=h;
   track.innerHTML=S.segs.map((s,i)=>{const T=TPL[s.tpl];
     const th=s.slots.slice(0,T.n).map(sl=>{const m=mediaById(sl.m);return m?`<img src="${m.thumb}" alt="" draggable="false">`:''}).join('');
-    return `<div class="seg${s.id===S.sel?' sel':''}" data-id="${s.id}" style="left:${PAD+st[i]*pps}px;width:${Math.max(18,s.dur*pps-3)}px;--h:${T.hue}"><div class="seg-thumbs">${th}</div><div class="seg-meta"><b>${T.name}</b><span class="mono">${s.dur.toFixed(1)}s</span></div><i class="seg-h" title="Drag to change length"></i></div>`}).join('')+'<div class="dropmark" id="dropmark" hidden></div>'}
+    return `<div class="seg${s.id===S.sel?' sel':''}" data-id="${s.id}" style="left:${PAD+st[i]*pps}px;width:${Math.max(18,s.dur*pps-3)}px;--h:${T.hue}"><div class="seg-thumbs">${th}</div><div class="seg-meta"><b>${T.name}</b><span class="mono">${s.dur.toFixed(1)}s</span></div><i class="seg-h" title="Drag to change length"></i></div>`}).join('')+'<div class="dropmark" id="dropmark" hidden></div>';drawWave()}
 function fitView(){const tot=Math.max(1,totalDur());S.pps=clamp((tlwrap.clientWidth-PAD*2-30)/tot,8,200);$('#zoom').value=S.pps;renderTimeline();dirty=true}
 function updateTotals(){const t=totalDur();$('#totLabel').textContent=fmt(t)+(t>=MAX_TOTAL?' (max)':'');$('#exportBtn').disabled=!S.segs.length}
 let drag=null;
@@ -791,7 +825,7 @@ window.addEventListener('pointermove',e=>{
   if(!drag)return;
   if(drag.type==='scrub'){scrubTo(e);return}
   const dx=e.clientX-drag.x0;
-  if(drag.type==='resize'){const seg=segById(drag.id),d=clamp(Math.round((drag.d0+dx/S.pps)*10)/10,1.5,Math.min(30,MAX_TOTAL-drag.others));
+  if(drag.type==='resize'){const seg=segById(drag.id),d=clamp(snapDur(drag.d0+dx/S.pps),1.5,Math.min(30,MAX_TOTAL-drag.others));
     seg.dur=d;drag.el.style.width=Math.max(18,d*S.pps-3)+'px';drag.el.querySelector('.seg-meta span').textContent=d.toFixed(1)+'s';updateTotals();return}
   if(Math.abs(dx)>4)drag.moved=true;
   if(drag.moved){drag.el.classList.add('drag');drag.el.style.transform=`translateX(${dx}px)`;
@@ -813,7 +847,7 @@ function setPlaying(v){
   if(v&&!S.segs.length)v=false;
   if(v&&S.t>=totalDur()-.01)S.t=0;
   S.playing=v;if(!v)pool.forEach(e=>e.v.pause());
-  const b=$('#playBtn');b.innerHTML=v?PAUSE:PLAY;b.setAttribute('aria-label',v?'Pause':'Play');dirty=true}
+  const b=$('#playBtn');b.innerHTML=v?PAUSE:PLAY;b.setAttribute('aria-label',v?'Pause':'Play');if(v)audioStart(S.t);else audioStop();dirty=true}
 function updateTransport(){
   const total=totalDur();
   $('#timeLbl').textContent=fmt(S.t)+' / '+fmt(total);
@@ -829,6 +863,7 @@ function loop(now){
     S.t+=dt;const total=totalDur();
     if(S.t>=total){if(S.exporting){S.t=total;endExport()}else S.t=0}
     dirty=true}
+  if(S.playing&&msrc&&actx&&actx.state==='running'){const ex=aStart.t+(actx.currentTime-aStart.ctx);if(Math.abs(ex-S.t)>.3)audioStart(S.t)}
   if(demoOn()){if(!CALM)DEMO.t=(DEMO.t+dt)%DEMO.total;dirty=true}
   if(dirty){dirty=false;renderAt(S.t);updateTransport();if(S.exporting)updateExportUI()}
   requestAnimationFrame(loop)}
@@ -843,7 +878,148 @@ function fitCanvas(){
   cv.style.width=Math.floor(cv.width*sc)+'px';cv.style.height=Math.floor(cv.height*sc)+'px'}
 new ResizeObserver(()=>{fitCanvas()}).observe($('#cvwrap'));
 new ResizeObserver(()=>{renderTimeline()}).observe($('#tlwrap'));
+$('#tlwrap').addEventListener('scroll',()=>{if(S.music)requestAnimationFrame(drawWave)});
 window.addEventListener('resize',()=>{fitCanvas();renderTimeline()});
+
+/* ---------- sound: music, clip sound, beat sync ---------- */
+const AC=window.AudioContext||window.webkitAudioContext;
+const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+let actx=null,volNode=null,fadeNode=null,msrc=null,tap=null;const aStart={ctx:0,t:0};
+const ensureCtx=()=>{if(!AC)return null;if(!actx)actx=new AC();if(actx.state==='suspended')actx.resume().catch(()=>{});return actx};
+const decodeP=(ctx,ab)=>new Promise((res,rej)=>{try{const p=ctx.decodeAudioData(ab,res,rej);if(p&&p.catch)p.catch(rej)}catch(e){rej(e)}});
+const beatPeriod=()=>S.music&&S.music.bpm?60/S.music.bpm:0;
+const musicOff=()=>S.sync&&S.music?(S.music.phase||0):0;
+const snapTo=(d,u)=>{let n=Math.max(1,Math.round(d/u));while(n*u<1.5)n++;return n*u};
+const snapDur=d=>{const p=S.sync?beatPeriod():0;return p?snapTo(d,p):Math.round(d*10)/10};
+function snapAll(p){S.segs.forEach(s=>{s.dur=clamp(snapTo(s.dur,p),1.5,30)})}
+function applySync(){const p=beatPeriod();if(!p)return;const unit=p*4<=6?p*4:p*2;
+  S.segs.forEach(s=>{if(s._d0==null)s._d0=s.dur;s.dur=clamp(snapTo(s.dur,unit),1.5,30)})}
+function unsync(){S.segs.forEach(s=>{if(s._d0!=null){s.dur=s._d0;delete s._d0}})}
+
+/* fade in over the first 1.5s and out over the last 2s of the project; works live and offline */
+function scheduleFade(g,now,t,total){
+  g.cancelScheduledValues(now);
+  if(!S.fade||total<=0){g.setValueAtTime(1,now);return}
+  const fi=Math.min(1.5,total/3),fo=Math.min(2,total/3),to=total-fo,v0=Math.max(0,Math.min(1,t/fi,(total-t)/fo));
+  g.setValueAtTime(v0,now);
+  if(t<fi)g.linearRampToValueAtTime(1,now+(fi-t));
+  if(t<to)g.setValueAtTime(1,now+(to-t));
+  if(total>t)g.linearRampToValueAtTime(0,now+(total-t))}
+function audioStop(){
+  if(msrc){try{msrc.stop()}catch(e){}try{msrc.disconnect()}catch(e){}msrc=null}
+  if(fadeNode){try{fadeNode.disconnect()}catch(e){}fadeNode=null}}
+function audioStart(t){
+  audioStop();
+  if(!S.music||!S.playing)return;
+  const c=ensureCtx();if(!c)return;
+  if(!volNode){volNode=c.createGain();volNode.connect(c.destination)}
+  volNode.gain.value=S.mVol;
+  if(tap){try{volNode.connect(tap)}catch(e){}}
+  fadeNode=c.createGain();fadeNode.connect(volNode);
+  scheduleFade(fadeNode.gain,c.currentTime,t,totalDur());
+  const src=c.createBufferSource(),d=S.music.dur;src.buffer=S.music.buffer;src.loop=true;src.connect(fadeNode);
+  src.start(0,(((musicOff()+t)%d)+d)%d);msrc=src;aStart.ctx=c.currentTime;aStart.t=t}
+
+/* beat detection: onset strength from a low band and a high band, tempo from autocorrelation, phase from a comb */
+function detectBeats(buf){
+  const sr=buf.sampleRate,n=Math.min(buf.length,Math.floor(sr*150)),hop=Math.max(1,Math.round(sr/200)),F=Math.floor(n/hop);
+  if(F<400)return{bpm:120,phase:0};
+  const c0=buf.getChannelData(0),c1=buf.numberOfChannels>1?buf.getChannelData(1):c0,eL=new Float32Array(F),eH=new Float32Array(F),a=1-Math.exp(-2*Math.PI*180/sr);
+  let y=0,prev=0;
+  for(let f=0;f<F;f++){let sl=0,sh=0;const o=f*hop;for(let i=0;i<hop;i++){const x=(c0[o+i]+c1[o+i])*.5;y+=a*(x-y);sl+=y*y;const d=x-prev;prev=x;sh+=d*d}eL[f]=Math.sqrt(sl/hop);eH[f]=Math.sqrt(sh/hop)}
+  const on=new Float32Array(F);
+  for(let f=1;f<F;f++){const dl=Math.log(1+80*eL[f])-Math.log(1+80*eL[f-1]),dh=Math.log(1+40*eH[f])-Math.log(1+40*eH[f-1]);on[f]=Math.max(0,dl)+.6*Math.max(0,dh)}
+  const w=100,ons=new Float32Array(F);let acc=0;
+  for(let f=0;f<F;f++){acc+=on[f];if(f>=w)acc-=on[f-w];ons[f]=Math.max(0,on[f]-acc/Math.min(f+1,w))}
+  const fps=sr/hop,minL=Math.floor(fps*60/190),maxL=Math.ceil(fps*60/65),ac=new Float32Array(maxL*3+3);
+  for(let L=minL;L<=Math.min(maxL*3,F-1);L++){let s=0;for(let f=0;f+L<F;f++)s+=ons[f]*ons[f+L];ac[L]=s/(F-L)}
+  let best=-1,bl=minL;
+  for(let L=minL;L<=maxL;L++){const bpm=60*fps/L,prior=Math.exp(-.5*Math.pow(Math.log2(bpm/118)/.9,2)),sc=(ac[L]+.5*ac[L*2]+.25*ac[L*3])*prior;if(sc>best){best=sc;bl=L}}
+  let lag=bl;{const a0=ac[bl-1],b0=ac[bl],c2=ac[bl+1],den=a0-2*b0+c2;if(den<0)lag=bl+.5*(a0-c2)/den}
+  let bp=-1,ph=0;
+  for(let p=0;p<lag;p+=.5){let s=0;for(let k=0;p+k*lag<F;k++)s+=ons[Math.round(p+k*lag)];if(s>bp){bp=s;ph=p}}
+  return{bpm:60*fps/lag,phase:ph/fps}}
+function calcPeaks(buf,bins=3000){
+  const out=new Float32Array(bins),n=buf.length,per=Math.max(1,Math.floor(n/bins));
+  for(let ch=0;ch<buf.numberOfChannels;ch++){const d=buf.getChannelData(ch);
+    for(let b=0;b<bins;b++){let mx=0;const s0=b*per,e0=Math.min(n,s0+per),st=Math.max(1,Math.floor((e0-s0)/64));for(let i=s0;i<e0;i+=st){const v=Math.abs(d[i]);if(v>mx)mx=v}if(mx>out[b])out[b]=mx}}
+  let top=0;for(const v of out)if(v>top)top=v;if(top>0)for(let b=0;b<bins;b++)out[b]/=top;return out}
+
+/* clip sound for export: decode each used clip's audio and mix it with the music into one stereo track */
+async function prepClipAudio(){
+  const used=new Set();S.segs.forEach(s=>s.slots.slice(0,TPL[s.tpl].n).forEach(sl=>{const m=mediaById(sl.m);if(m&&m.type==='video')used.add(m)}));
+  const dc=new OAC(2,1,48000);
+  for(const m of used){if(m.abuf!==undefined)continue;try{m.abuf=await decodeP(dc,await (await fetch(m.url)).arrayBuffer())}catch(e){m.abuf=null}}}
+async function renderMix(total){
+  const sr=48000,oc=new OAC(2,Math.max(1,Math.ceil(total*sr)),sr),comp=oc.createDynamicsCompressor();
+  comp.threshold.value=-10;comp.ratio.value=6;comp.connect(oc.destination);
+  if(S.music){const fg=oc.createGain(),vg=oc.createGain(),src=oc.createBufferSource(),d=S.music.dur;
+    vg.gain.value=S.mVol;fg.connect(vg);vg.connect(comp);scheduleFade(fg.gain,0,0,total);
+    src.buffer=S.music.buffer;src.loop=true;src.connect(fg);src.start(0,musicOff()%d)}
+  if(S.cVol>0){const st=starts();
+    S.segs.forEach((seg,i)=>{
+      const vids=seg.slots.slice(0,TPL[seg.tpl].n).map(sl=>({sl,m:mediaById(sl.m)})).filter(q=>q.m&&q.m.type==='video'&&q.m.abuf);
+      if(!vids.length)return;const gv=S.cVol/Math.sqrt(vids.length),t0=st[i],t1=t0+seg.dur;
+      vids.forEach(q=>{const g=oc.createGain(),s=oc.createBufferSource(),ab=q.m.abuf;
+        g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(gv,t0+.04);g.gain.setValueAtTime(gv,Math.max(t0+.04,t1-.06));g.gain.linearRampToValueAtTime(0,t1);
+        s.buffer=ab;s.loop=true;s.connect(g);g.connect(comp);s.start(t0,q.sl.start%ab.duration);s.stop(t1)})})}
+  return oc.startRendering()}
+
+/* timeline lane: waveform of the music, fading with the fade setting, with beat ticks when cutting on the beat */
+function drawWave(){
+  const c=$('#wave'),m=S.music;tlinner.classList.toggle('hasmusic',!!m);
+  if(!m||!m.peaks)return;
+  const vw=tlwrap.clientWidth,sl=tlwrap.scrollLeft,h=26,dpr=window.devicePixelRatio||1,total=totalDur(),pk=m.peaks,bins=pk.length,off=musicOff();
+  c.style.left=sl+'px';c.style.width=vw+'px';c.style.height=h+'px';c.width=Math.round(vw*dpr);c.height=Math.round(h*dpr);
+  const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
+  const g=x.createLinearGradient(0,0,vw,0);g.addColorStop(0,'#6ee7f0');g.addColorStop(1,'#8b7cff');x.fillStyle=g;
+  const fi=Math.min(1.5,total/3),fo=Math.min(2,total/3);
+  for(let px=0;px<vw;px+=3){const t=(sl+px-PAD)/S.pps;if(t<0||t>total)continue;
+    const mt=(((off+t)%m.dur)+m.dur)%m.dur,a=pk[Math.min(bins-1,Math.floor(mt/m.dur*bins))],fg=S.fade&&total?Math.max(0,Math.min(1,t/fi,(total-t)/fo)):1,bh=Math.max(1.5,a*h*.95*(.25+.75*fg));
+    x.globalAlpha=.35+.5*fg;x.fillRect(px,(h-bh)/2,2,bh)}
+  x.globalAlpha=1;
+  const p=beatPeriod();
+  if(S.sync&&p&&S.pps*p>=7){x.fillStyle='rgba(255,255,255,.4)';for(let k=0;k*p<=total;k++){const px=PAD+k*p*S.pps-sl;if(px>=0&&px<=vw)x.fillRect(px,0,1,h)}}}
+
+/* music state + panel */
+function renderSound(){
+  const m=S.music;
+  $('#strackName').textContent=m?m.name:'No music';
+  $('#strackMeta').textContent=m?fmt(m.dur).replace('.0','')+(m.bpm?'  '+Math.round(m.bpm)+' bpm':''):'';
+  $('#musicRm').hidden=!m;
+  const bc=$('#beatChk');bc.disabled=!(m&&m.bpm);bc.checked=!!S.sync&&!bc.disabled;
+  $('#bpmLbl').textContent=m&&m.bpm?Math.round(m.bpm)+' bpm':'';
+  $('#mVolO').textContent=Math.round(S.mVol*100)+'%';$('#cVolO').textContent=S.cVol>0?Math.round(S.cVol*100)+'%':'Off'}
+function setMusic(m){
+  m.dur=m.buffer.duration;m.peaks=calcPeaks(m.buffer);
+  if(!m.bpm){const d=detectBeats(m.buffer);m.bpm=d.bpm;m.phase=d.phase}
+  unsync();S.music=m;if(S.sync)applySync();
+  renderSound();afterEdit();if(S.playing)audioStart(S.t)}
+function afterMusicAdded(msg){
+  if(S.segs.length){S.t=0;setPlaying(true);toast(msg)}else toast(msg+' Add photos or videos to hear it with your collage.')}
+function removeMusic(){
+  audioStop();S.music=null;if(S.sync){S.sync=false;unsync()}
+  renderSound();afterEdit()}
+async function loadMusicFile(f){
+  const c=ensureCtx()||new OAC(2,1,48000);
+  toast('Reading '+f.name+'...');
+  try{
+    const buf=await decodeP(c,await f.arrayBuffer());await new Promise(r=>setTimeout(r,30));
+    setMusic({kind:'file',name:f.name,buffer:buf});afterMusicAdded('Music added, about '+Math.round(S.music.bpm)+' bpm.')
+  }catch(e){console.error(e);toast('Could not read that audio file.')}}
+function routeDrop(list){
+  const fl=[...list],au=fl.find(f=>/^audio\//.test(f.type)||/\.(mp3|wav|m4a|aac|ogg|oga|flac)$/i.test(f.name)),rest=fl.filter(f=>f!==au);
+  if(au)loadMusicFile(au);if(rest.length)addFiles(rest)}
+$('#audioIn').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)loadMusicFile(f)});
+$('#mVol').addEventListener('input',e=>{S.mVol=+e.target.value/100;if(volNode)volNode.gain.value=S.mVol;renderSound()});
+$('#cVol').addEventListener('input',e=>{S.cVol=+e.target.value/100;renderSound();dirty=true});
+$('#fadeChk').addEventListener('change',e=>{S.fade=e.target.checked;if(S.playing)audioStart(S.t);drawWave()});
+$('#beatChk').addEventListener('change',e=>{
+  if(e.target.checked){S.sync=true;applySync();afterEdit();toast('Scenes now cut on the beat.')}
+  else{S.sync=false;unsync();afterEdit()}
+  if(S.playing)audioStart(S.t)});
+$('#musicRm').addEventListener('click',removeMusic);
+renderSound();
 
 /* ---------- export ---------- */
 /* Export renders frame by frame (WebCodecs + a muxer), so timing is exact and it does not run in real time.
@@ -896,29 +1072,52 @@ async function renderFast(f){
     try{const r=await VideoEncoder.isConfigSupported(c);if(r.supported){cfg=c;break}}catch(e){}}
   if(!cfg)return false;
   const isMp4=f.id==='mp4',M=isMp4?window.Mp4Muxer:window.WebMMuxer,target=new M.ArrayBufferTarget();
-  const muxer=new M.Muxer(isMp4?{target,video:{codec:'avc',width:W,height:H},fastStart:'in-memory'}
-    :{target,video:{codec:cfg.codec.startsWith('vp09')?'V_VP9':'V_VP8',width:W,height:H,frameRate:fps}});
+  /* audio: mix music and clip sound into one track first, then check the browser can encode it */
+  let mix=null,acfg=null,aMode=null;
+  if(S.music||S.cVol>0){
+    try{
+      $('#exTitle').textContent='Mixing the audio';
+      if(S.cVol>0){$('#exText').textContent='Reading the sound of your clips...';await prepClipAudio()}
+      if(X.cancel)return true;
+      $('#exText').textContent='Mixing the audio...';mix=await renderMix(total);
+    }catch(e){console.error(e);mix=null}
+    if(mix&&typeof AudioEncoder!=='undefined'&&typeof AudioData!=='undefined'){
+      const tries=isMp4?[['mp4a.40.2','aac'],['opus','opus']]:[['opus','A_OPUS']];
+      for(const [codec,mc] of tries){const c={codec,sampleRate:48000,numberOfChannels:2,bitrate:160000};
+        try{const r=await AudioEncoder.isConfigSupported(c);if(r.supported){acfg=c;aMode=mc;break}}catch(e){}}
+    }
+    if(!acfg){mix=null;toast('This browser cannot add sound to the video, so it was exported without it.')}
+  }
+  const mopts=isMp4?{target,video:{codec:'avc',width:W,height:H},fastStart:'in-memory'}
+    :{target,video:{codec:cfg.codec.startsWith('vp09')?'V_VP9':'V_VP8',width:W,height:H,frameRate:fps}};
+  if(acfg)mopts.audio={codec:aMode,numberOfChannels:2,sampleRate:48000};
+  const muxer=new M.Muxer(mopts);
   let err=null;
   const enc=new VideoEncoder({output:(chunk,meta)=>muxer.addVideoChunk(chunk,meta),error:e=>{err=e}});
   enc.configure(cfg);
+  let aenc=null,aPos=0;
+  if(acfg){aenc=new AudioEncoder({output:(c,m)=>muxer.addAudioChunk(c,m),error:e=>{err=e}});aenc.configure(acfg)}
+  const feed=upTo=>{if(!aenc)return;const end=Math.min(mix.length,Math.floor(upTo*48000)),L=mix.getChannelData(0),R=mix.numberOfChannels>1?mix.getChannelData(1):L;
+    while(aPos<end){const n=Math.min(4800,end-aPos),d=new Float32Array(n*2);d.set(L.subarray(aPos,aPos+n),0);d.set(R.subarray(aPos,aPos+n),n);
+      aenc.encode(new AudioData({format:'f32-planar',sampleRate:48000,numberOfFrames:n,numberOfChannels:2,timestamp:Math.round(aPos/48000*1e6),data:d}));aPos+=n}};
   X.fast=true;
   $('#exTitle').textContent='Rendering your video';
   for(let i=0;i<n;i++){
-    if(X.cancel){try{enc.close()}catch(_){}return true}
+    if(X.cancel){try{enc.close()}catch(_){}try{aenc&&aenc.close()}catch(_){}return true}
     if(err)throw err;
     const t=Math.min(i/fps,Math.max(0,total-.0005));
     S.t=t;await prepareFrame(t,fps);renderAt(t);
     while(enc.encodeQueueSize>6)await new Promise(r=>{enc.addEventListener('dequeue',r,{once:true});setTimeout(r,50)});
     const vf=new VideoFrame(cv,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});
-    enc.encode(vf,{keyFrame:i%(fps*2)===0});vf.close();
+    enc.encode(vf,{keyFrame:i%(fps*2)===0});vf.close();feed((i+1)/fps);
     if(i%4===0||i===n-1){
       $('#exBar').style.width=((i+1)/n*100).toFixed(1)+'%';
       $('#exText').textContent='Rendered '+fmt(t)+' of '+fmt(total)+' ('+fps+' fps). You can switch tabs, but keep this page open.';
       await yieldNow()}
   }
-  await enc.flush();if(err)throw err;
-  if(X.cancel){try{enc.close()}catch(_){}return true}
-  muxer.finalize();enc.close();
+  feed(total+1);await enc.flush();if(aenc)await aenc.flush();if(err)throw err;
+  if(X.cancel){try{enc.close()}catch(_){}try{aenc&&aenc.close()}catch(_){}return true}
+  muxer.finalize();enc.close();if(aenc)aenc.close();
   X.blob=new Blob([target.buffer],{type:isMp4?'video/mp4':'video/webm'});
   S.exporting=false;S.t=0;dirty=true;pool.forEach(e=>e.v.pause());setPlaying(false);
   finishExport();return true}
@@ -937,7 +1136,8 @@ async function startExport(){
   }
   warm(S.segs[0]);renderAt(0);await sleep(700);
   if(X.cancel)return;
-  const stream=cv.captureStream(+$('#fpsSel').value||30),bps=S.res>=1080?10e6:6e6;let rec;
+  const stream=cv.captureStream(+$('#fpsSel').value||30),bps=S.res>=1080?10e6:6e6;let rec;tap=null;
+  if(S.music){const c=ensureCtx();if(c){tap=c.createMediaStreamDestination();const at=tap.stream.getAudioTracks()[0];if(at)stream.addTrack(at)}}
   try{rec=new MediaRecorder(stream,{mimeType:f.mime,videoBitsPerSecond:bps})}
   catch(e){try{rec=new MediaRecorder(stream,{videoBitsPerSecond:bps});X.fmt={ext:/mp4/.test(rec.mimeType)?'mp4':'webm',mime:rec.mimeType||'video/webm'}}
     catch(e2){S.exporting=false;openModal('Export failed','The browser refused to start recording.',[{id:'close',label:'Close'}]);return}}
@@ -1011,7 +1211,7 @@ let dragN=0;
 window.addEventListener('dragenter',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){dragN++;$('#dropOv').hidden=false}});
 window.addEventListener('dragleave',()=>{dragN=Math.max(0,dragN-1);if(!dragN)$('#dropOv').hidden=true});
 window.addEventListener('dragover',e=>e.preventDefault());
-window.addEventListener('drop',e=>{e.preventDefault();dragN=0;$('#dropOv').hidden=true;if(e.dataTransfer&&e.dataTransfer.files.length)addFiles(e.dataTransfer.files)});
+window.addEventListener('drop',e=>{e.preventDefault();dragN=0;$('#dropOv').hidden=true;if(e.dataTransfer&&e.dataTransfer.files.length)routeDrop(e.dataTransfer.files)});
 
 /* ---------- start (empty project plays the looping Mix showcase) ---------- */
 function init(){
