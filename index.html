@@ -269,6 +269,24 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);opacity:0;pointer-events:none;
   background:#232738;border:1px solid var(--line-2);padding:9px 14px;border-radius:10px;font-size:13px;z-index:60;transition:.2s;max-width:92vw}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+/* first-visit walkthrough */
+.tour{position:fixed;inset:0;z-index:80}
+.tour-hole{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:14px;pointer-events:none;
+  box-shadow:0 0 0 2px var(--cool),0 0 0 100vmax rgba(5,6,10,.78);transition:left .4s cubic-bezier(.2,.8,.2,1),top .4s cubic-bezier(.2,.8,.2,1),width .4s cubic-bezier(.2,.8,.2,1),height .4s cubic-bezier(.2,.8,.2,1)}
+.tour-hole.blank{box-shadow:0 0 0 100vmax rgba(5,6,10,.78)}
+.tour-card{position:fixed;left:0;top:0;width:min(340px,calc(100vw - 24px));padding:16px 16px 14px;background:var(--panel-solid);border:1px solid var(--line-2);border-radius:16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.55);transition:left .4s cubic-bezier(.2,.8,.2,1),top .4s cubic-bezier(.2,.8,.2,1)}
+.tour-card h3{margin:2px 0 6px;font-family:var(--f-display);font-weight:800;font-size:18px;text-wrap:balance}
+.tour-card p{font-size:13.5px;line-height:1.5;color:var(--fg-2)}
+.tour-step{font-size:11.5px;color:var(--cool)}
+.tour-dots{display:flex;gap:5px;margin:12px 0 12px}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .2s,width .2s}
+.tour-dots i.on{width:18px;border-radius:4px;background:var(--cool)}
+.tour-btns{display:flex;align-items:center;gap:8px}
+.tourlnk{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:6;font-size:11.5px;color:var(--fg-3);background:none;border:0;cursor:pointer;padding:4px 7px;border-radius:7px}
+.tourlnk:hover{color:var(--fg);background:rgba(255,255,255,.06)}
+html.intro:not(.reveal) .tourlnk{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.tour-hole,.tour-card,.tour-dots i{transition:none}}
 /* intro / outro maker */
 .mcard.cmodal{width:min(1000px,100%);max-height:calc(100vh - 24px);overflow:auto;gap:10px}
 .cmodal .ph-row{margin-bottom:0;flex-wrap:nowrap}
@@ -426,6 +444,17 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
     </div>
   </div>
 </div>
+<div class="tour" id="tour" hidden>
+  <div class="tour-hole blank" id="tourHole"></div>
+  <div class="tour-card" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+    <div class="tour-step mono" id="tourStep"></div>
+    <h3 id="tourTitle"></h3>
+    <p id="tourText"></p>
+    <div class="tour-dots" id="tourDots" aria-hidden="true"></div>
+    <div class="tour-btns"><button type="button" class="lnk" id="tourSkip">Skip tour</button><span class="spacer"></span><button type="button" class="btn sm" id="tourBack">Back</button><button type="button" class="btn hot sm" id="tourNext">Next</button></div>
+  </div>
+</div>
+<button type="button" class="tourlnk" id="tourBtn" title="Replay the quick tour">? Take the tour</button>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div id="vpool" style="position:fixed;left:-9999px;top:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none" aria-hidden="true"></div>
 
@@ -1502,6 +1531,66 @@ document.addEventListener('keydown',e=>{
     im.onerror=()=>{URL.revokeObjectURL(url);toast('Could not read that image.')};im.src=url});
   $('#cImgRm').addEventListener('click',()=>{const c=C();if(c.imgUrl)URL.revokeObjectURL(c.imgUrl);apply(()=>{c.img=null;c.imgUrl='';c.imgName=''},true);
     $('#cImgOpts').hidden=true;$('#cImgRm').hidden=true;$('#cImgName').textContent=''});
+})();
+
+/* ---------- first-visit walkthrough ---------- */
+(function(){
+  const KEY='collagr_tour_v1',root=document.documentElement;
+  const STEPS=[
+    {t:'Welcome to Collagr by UK',x:'Turn your videos and photos into a finished collage video in a few clicks. This short tour shows where everything is. It takes about a minute.'},
+    {el:'#dropzone',pad:6,side:['right','bottom'],t:'Add your clips',x:'Click here, or drop videos and photos anywhere on the page. Your collage builds itself as soon as they land.'},
+    {el:'.stage',pad:4,side:['left','right'],t:'Watch the preview',x:'Your collage plays here. Press Space to play or pause, and use the bar underneath to jump around. The Watermark tick under the preview shows or hides your logo.'},
+    {el:'.tplpanel',pad:6,side:['left','bottom'],t:'Pick a look',x:'Mix gives every scene a different design. Browse templates opens all 28 designs, and you can hover a card to preview it.'},
+    {el:'.tl',pad:6,side:['top'],t:'Arrange your scenes',x:'Drag a scene to reorder it, drag its right edge to resize it, and click the ruler to jump. Click a scene to change its template, transition and clips on the right.'},
+    {el:'.sound',pad:6,side:['right','top'],t:'Add music',x:'Upload your own track, set the volume and fades, or keep the clips’ own sound with the Clips slider. Cut on the beat snaps scene lengths to the music.'},
+    {el:'#cardBtn',pad:6,side:['bottom'],t:'Intro and outro',x:'Write a title card for the start and the end. New style picks a random font, colors and animation, and you can add your own image.'},
+    {el:'.top',pad:4,side:['bottom'],t:'Export your video',x:'Choose 16:9 or 9:16, quality, frame rate and format up here, then press Export video. You can switch tabs while it renders, but keep this page open.'},
+    {t:'You are ready',x:'Add some clips to begin. You can replay this tour any time with “Take the tour” in the bottom right corner.'}];
+  const tour=$('#tour'),hole=$('#tourHole'),card=$('#tourCard');let i=0,isOpen=false,back=null;
+  const seen=()=>{try{return localStorage.getItem(KEY)==='1'}catch(e){return false}};
+  const mark=()=>{try{localStorage.setItem(KEY,'1')}catch(e){}};
+  const target=s=>{const el=s.el&&document.querySelector(s.el);return el&&el.getClientRects().length?el:null};
+  function place(){
+    const s=STEPS[i],el=target(s),vw=innerWidth,vh=innerHeight,cw=card.offsetWidth,ch=card.offsetHeight,M=12;let x,y;
+    if(!el){hole.classList.add('blank');hole.style.cssText='left:'+vw/2+'px;top:'+vh/2+'px;width:0;height:0';x=(vw-cw)/2;y=(vh-ch)/2}
+    else{
+      const r=el.getBoundingClientRect(),pd=s.pad==null?8:s.pad,hx=r.left-pd,hy=r.top-pd,hw=r.width+pd*2,hh=r.height+pd*2;
+      hole.classList.remove('blank');hole.style.cssText='left:'+hx+'px;top:'+hy+'px;width:'+hw+'px;height:'+hh+'px';
+      const cx=clamp(hx+hw/2-cw/2,M,vw-cw-M),cy=clamp(hy+hh/2-ch/2,M,vh-ch-M);
+      const opts={bottom:[cx,hy+hh+14],top:[cx,hy-ch-14],right:[hx+hw+14,cy],left:[hx-cw-14,cy]};
+      const fits={bottom:opts.bottom[1]+ch<=vh-M,top:opts.top[1]>=M,right:opts.right[0]+cw<=vw-M,left:opts.left[0]>=M};
+      const pref=(s.side||[]).concat(['bottom','top','right','left']).find(k=>fits[k]);
+      if(pref){x=opts[pref][0];y=opts[pref][1]}
+      else{x=cx;y=clamp(hy+hh-ch-16,M,vh-ch-M)}}
+    card.style.left=Math.round(x)+'px';card.style.top=Math.round(y)+'px'}
+  function show(n){
+    i=clamp(n,0,STEPS.length-1);const s=STEPS[i],el=target(s);
+    if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',inline:'nearest'});
+    $('#tourStep').textContent=i===0||i===STEPS.length-1?'':'Step '+i+' of '+(STEPS.length-2);
+    $('#tourTitle').textContent=s.t;$('#tourText').textContent=s.x;
+    $('#tourDots').innerHTML=STEPS.map((_,k)=>'<i'+(k===i?' class="on"':'')+'></i>').join('');
+    $('#tourBack').hidden=i===0;$('#tourSkip').hidden=i===STEPS.length-1;
+    $('#tourNext').textContent=i===0?'Start tour':i===STEPS.length-1?'Start creating':'Next';
+    place();$('#tourNext').focus({preventScroll:true})}
+  function begin(){
+    if(isOpen)return;isOpen=true;back=document.activeElement;setPlaying(false);
+    tour.hidden=false;card.style.transition='none';hole.style.transition='none';show(0);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{card.style.transition='';hole.style.transition=''}))}
+  function end(){if(!isOpen)return;isOpen=false;tour.hidden=true;mark();if(back&&back.focus)try{back.focus({preventScroll:true})}catch(e){}}
+  $('#tourNext').addEventListener('click',()=>{if(i>=STEPS.length-1)end();else show(i+1)});
+  $('#tourBack').addEventListener('click',()=>show(i-1));
+  $('#tourSkip').addEventListener('click',end);
+  $('#tourBtn').addEventListener('click',begin);
+  window.addEventListener('resize',()=>{if(isOpen)place()});
+  document.addEventListener('keydown',e=>{if(!isOpen)return;
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();end()}
+    else if(e.key==='ArrowRight'){e.preventDefault();if(i<STEPS.length-1)show(i+1)}
+    else if(e.key==='ArrowLeft'){e.preventDefault();if(i>0)show(i-1)}
+    else if(e.code==='Space'||e.key==='Delete'||e.key==='Backspace'){e.stopPropagation()}},true);
+  /* first visit: wait for the opening animation to finish, then start */
+  if(!seen()){let n=0;const wait=()=>{n++;
+    if(!root.classList.contains('intro')||root.classList.contains('reveal')){setTimeout(()=>{if(!seen()&&$('#tplModal').hidden&&$('#cardModal').hidden)begin()},1600)}
+    else if(n<120)setTimeout(wait,250)};wait()}
 })();
 
 let dragN=0;
