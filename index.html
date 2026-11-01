@@ -642,6 +642,78 @@ const TPLS=[
   const cw=L?H*.55:W*.62,ch=cw*(L?1.3:1.35),px=W/2,py=L?H*1.02:H*.9,D=ch*(L?.62:.9),spread=(.17+.025*Math.sin(lt*.9))*e*(L?1:.8);
   [0,4,1,3,2].forEach(i=>{const th=(i-2)*spread,cx=px+Math.sin(th)*D,cy=py-Math.cos(th)*D;
     o.push({x:cx-cw/2,y:cy-ch/2,w:cw,h:ch,rot:th,r:B*.03,a:clamp(e*2.2,0,1),shadow:B*.05,bw:B*.004,bc:'rgba(255,255,255,.75)',k:i,zoom:1.08,px:(i-2)*.12})});
+  return o}},
+{id:'glass',name:'Glass Stack',n:3,hue:255,bg:['#12162b','#2a1b4d'],amb:true,layout(W,H,lt,p){
+  /* three big rounded cards with a soft white edge, stacked on a diagonal over a blurred copy of the first clip */
+  const L=W>=H,B=Math.min(W,H),o=[],cw=L?W*.46:W*.78,ch=L?H*.62:H*.36,cfg=L?[[.3,.34],[.5,.5],[.7,.66]]:[[.5,.2],[.5,.5],[.5,.8]];
+  for(let i=0;i<3;i++){const e=eob(pop(lt,i,.16,.8)),ec=clamp(e,0,1.04),q=cfg[i],fl=Math.sin(lt*.9+i*1.9)*B*.012;
+    o.push({x:q[0]*W-cw/2+(1-clamp(e,0,1))*(i%2?1:-1)*W*.2,y:q[1]*H-ch/2+fl,w:cw,h:ch,r:B*.05,s:.9+.1*ec,a:clamp(e*2,0,1),shadow:B*.07,bw:B*.0045,bc:'rgba(255,255,255,.55)',k:i,zoom:1.06,px:(p-.5)*.4*(i-1)})}
+  return o}},
+{id:'phone',name:'Phone Trio',n:3,hue:220,bg:['#0b0d17','#1a1f3a'],amb:true,layout(W,H,lt,p){
+  /* a big phone-shaped clip in the middle with two smaller tilted ones behind it */
+  const L=W>=H,B=Math.min(W,H),e=eo3(pop(lt,0,0,.9)),o=[],ph=L?H*.84:H*.66,pw=ph*.5625,sc=.7,off=pw*(L?.98:.82)*e,bz=B*.012;
+  const side=(dir,k)=>{const w=pw*sc,h=ph*sc,ee=eo3(pop(lt,k,.16,.8));
+    return{x:W/2+dir*off-w/2,y:H/2-h/2+(1-ee)*H*.25+Math.sin(lt*.8+k)*B*.01,w,h,r:w*.14,rot:dir*.1*e,a:clamp(ee*2,0,1),shadow:B*.05,bw:bz*sc,bc:'#07080d',k,zoom:1.1,py:(p-.5)*.6*dir}};
+  o.push(side(-1,1),side(1,2));
+  o.push({x:W/2-pw/2,y:H/2-ph/2+Math.sin(lt*.7)*B*.008,w:pw,h:ph,r:pw*.14,s:.9+.1*e,a:e,shadow:B*.07,bw:bz,bc:'#07080d',k:0,zoom:1.06+.06*p,py:(p-.5)*.5});
+  return o}},
+{id:'venn',name:'Overlap Circles',n:3,hue:200,bg:['#0f172a','#1e3a5f'],layout(W,H,lt,p){
+  /* three circles overlap in a row (or a column on tall screens), the middle one on top */
+  const L=W>=H,B=Math.min(W,H),d=L?H*.7:W*.74,gap=d*.64,o=[];
+  [[-1,1],[1,2],[0,0]].forEach(([dir,k])=>{const e=eob(pop(lt,k,.15,.8)),ec=clamp(e,0,1.05),bob=Math.sin(lt*.8+k*2)*B*.012,dd=d*(k===0?1.08:1);
+    o.push({x:(L?W/2+dir*gap*ec:W/2)-dd/2,y:(L?H/2:H/2+dir*gap*ec)-dd/2+bob,w:dd,h:dd,shape:'circle',s:.55+.45*ec,a:clamp(e*2,0,1),bw:B*.011,bc:'#fff',shadow:B*.05,k,zoom:1.15,px:Math.sin(lt*.5+k)*.4,py:k?0:p-.5})});
+  return o}},
+{id:'wave',name:'Mosaic Wave',n:4,hue:160,bg:['#10121c','#1b2236'],layout(W,H,lt,p){
+  /* a grid of tiles that pulse in a travelling wave */
+  const L=W>=H,B=Math.min(W,H),cols=L?5:3,rows=L?3:5,g=B*.02,cw=(W-(cols+1)*g)/cols,ch=(H-(rows+1)*g)/rows,o=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const e=eob(pop(lt,r+c,.07,.5)),ec=clamp(e,0,1.05),wv=.86+.12*Math.sin(lt*2.2-(r+c)*.8);
+    o.push({x:g+c*(cw+g),y:g+r*(ch+g),w:cw,h:ch,r:B*.025,s:wv*(.5+.5*ec),a:clamp(e*2,0,1),k:(r*2+c)%4,zoom:1.1,px:(p-.5)*.3*((r+c)%2?1:-1)})}
+  return o}},
+{id:'eq',name:'Equalizer',n:5,hue:300,bg:['#0d0b1f','#2a0f3d'],layout(W,H,lt,p){
+  /* five bars that rise and fall like a music equalizer, each filled with a clip */
+  const L=W>=H,B=Math.min(W,H),n=5,g=B*.025,o=[];
+  for(let i=0;i<n;i++){const e=eo3(pop(lt,i,.1,.7)),f=(.5+.5*(.5+.5*Math.sin(lt*1.6+i*1.3)))*e;
+    if(L){const bw=(W-(n+1)*g)/n,h=(H-2*g)*f;o.push({x:g+i*(bw+g),y:H-g-h,w:bw,h,r:bw*.22,k:i,zoom:1.15,px:(p-.5)*.5*(i-2)/2})}
+    else{const bh=(H-(n+1)*g)/n,w=(W-2*g)*f;o.push({x:g,y:g+i*(bh+g),w,h:bh,r:bh*.22,k:i,zoom:1.15,py:(p-.5)*.5*(i-2)/2})}}
+  return o}},
+{id:'curtain',name:'Curtain Reveal',n:3,hue:5,bg:['#1a0a0a','#3a1414'],layout(W,H,lt,p){
+  /* two panels slide apart like curtains and reveal a full-screen clip behind them */
+  const L=W>=H,B=Math.min(W,H),q=eio(clamp((lt-.25)/1.2,0,1)),open=lerp(.5,.27,q),g=B*.012,o=[];
+  o.push({x:0,y:0,w:W,h:H,k:2,zoom:1.05+.1*p,px:(p-.5)*.5});
+  if(L){const w=W*open;o.push({x:0,y:0,w:w-g,h:H,k:0,shadow:B*.07,zoom:1.1,px:(p-.5)*.6},{x:W-w+g,y:0,w:w-g,h:H,k:1,shadow:B*.07,zoom:1.1,px:(.5-p)*.6})}
+  else{const h=H*open;o.push({x:0,y:0,w:W,h:h-g,k:0,shadow:B*.07,zoom:1.1,py:(p-.5)*.6},{x:0,y:H-h+g,w:W,h:h-g,k:1,shadow:B*.07,zoom:1.1,py:(.5-p)*.6})}
+  return o}},
+{id:'slices',name:'Venetian',n:3,hue:25,bg:['#1a0f0a','#3a1d12'],layout(W,H,lt,p){
+  /* six narrow slices drop in from alternate sides, each showing one of three clips */
+  const L=W>=H,B=Math.min(W,H),n=6,g=B*.015,o=[];
+  for(let i=0;i<n;i++){const e=eo3(pop(lt,i,.09,.7)),dir=i%2?1:-1,k=i%3;
+    if(L){const w=(W-(n+1)*g)/n;o.push({x:g+i*(w+g),y:g+dir*(1-e)*H,w,h:H-2*g,r:w*.22,a:clamp(e*2,0,1),k,zoom:1.15,px:(p-.5)*.5*(k-1)})}
+    else{const h=(H-(n+1)*g)/n;o.push({x:g+dir*(1-e)*W,y:g+i*(h+g),w:W-2*g,h,r:h*.22,a:clamp(e*2,0,1),k,zoom:1.15,py:(p-.5)*.5*(k-1)})}}
+  return o}},
+{id:'hub',name:'Hub',n:5,hue:340,bg:['#141018','#2a1530'],layout(W,H,lt,p){
+  /* four tiles in a grid with a circle of a fifth clip sitting on the crossing */
+  const B=Math.min(W,H),g=B*.03,cw=(W-3*g)/2,ch=(H-3*g)/2,o=[];
+  for(let i=0;i<4;i++){const e=eo3(pop(lt,i,.1,.6));o.push({x:g+(i%2)*(cw+g),y:g+(i>>1)*(ch+g),w:cw,h:ch,r:B*.035,a:e,s:.9+.1*e,k:i,zoom:1.06,px:(i%2?-1:1)*(p-.5)*.5})}
+  const e=eob(pop(lt,4,.1,.7)),ec=clamp(e,0,1.06),d=Math.min(cw,ch)*1.02;
+  o.push({x:W/2-d/2,y:H/2-d/2+Math.sin(lt*1.1)*B*.01,w:d,h:d,shape:'circle',s:.5+.5*ec,a:clamp(e*2,0,1),bw:B*.012,bc:'#fff',shadow:B*.06,k:4,zoom:1.2,px:Math.sin(lt*.6)*.3});
+  return o}},
+{id:'caps',name:'Capsules',n:4,hue:330,bg:['#240a1f','#4a1240'],layout(W,H,lt,p){
+  /* four pill shapes that float up and down out of step with each other */
+  const L=W>=H,B=Math.min(W,H),n=4,o=[];
+  if(L){const w=W*.19,g=(W-n*w)/(n+1),h=H*.78;
+    for(let i=0;i<n;i++){const e=eo3(pop(lt,i,.12,.8)),dir=i%2?1:-1;
+      o.push({x:g+i*(w+g),y:(H-h)/2+dir*(1-e)*H+Math.sin(lt*1.1+i*1.4)*H*.04,w,h,r:w/2,a:clamp(e*2,0,1),k:i,zoom:1.2,px:Math.sin(lt*.5+i)*.4,shadow:B*.04})}}
+  else{const gp=B*.03,h=(H-(n+1)*gp)/n,w=W*.88;
+    for(let i=0;i<n;i++){const e=eo3(pop(lt,i,.12,.8)),dir=i%2?1:-1;
+      o.push({x:(W-w)/2+dir*(1-e)*W+Math.sin(lt*1.1+i*1.4)*W*.03,y:gp+i*(h+gp),w,h,r:h/2,a:clamp(e*2,0,1),k:i,zoom:1.2,py:Math.sin(lt*.5+i)*.4,shadow:B*.04})}}
+  return o}},
+{id:'stick',name:'Stickers',n:4,hue:50,bg:['#111','#222'],layout(W,H,lt,p){
+  /* a full-screen clip with three white-bordered stickers that bounce in and wobble */
+  const L=W>=H,B=Math.min(W,H),o=[],sw=L?W*.26:W*.5,sh=sw*.7;
+  o.push({x:0,y:0,w:W,h:H,k:0,zoom:1.05+.1*p,px:p-.5});
+  const pos=L?[[.2,.27,-.08],[.82,.3,.07],[.7,.76,-.05]]:[[.28,.18,-.07],[.72,.45,.06],[.34,.8,-.05]];
+  pos.forEach((q,i)=>{const e=eob(pop(lt,i+1,.2,.7)),ec=clamp(e,0,1.1);
+    o.push({x:q[0]*W-sw/2,y:q[1]*H-sh/2,w:sw,h:sh,r:B*.018,rot:q[2]+Math.sin(lt*1.3+i*2)*.025+(1-clamp(e,0,1))*.5,s:.2+.8*ec,a:clamp(e*3,0,1),bw:B*.012,bc:'#fff',shadow:B*.05,k:i+1,zoom:1.1})});
   return o}}
 ];
 const TPL=Object.fromEntries(TPLS.map(t=>[t.id,t]));
