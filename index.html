@@ -1402,13 +1402,13 @@ class FrameSrc{
     if(k<0){const kf=I.prevSync[ti];
       if(this.cur&&tus<this.curUs||this.flushed||!this.fed){this.reset();this.ptr=kf}
       else if(kf>this.ptr){this.dropOut(()=>false);this.ptr=kf}}
-    const deadline=performance.now()+8000;
+    const deadline=performance.now()+3500;
     while(k<0){
       if(this.failed||performance.now()>deadline){this.failed=true;return null}
-      if(this.ptr<I.n&&this.dec.decodeQueueSize<6&&this.out.length<16){
+      if(this.ptr<I.n&&this.dec.decodeQueueSize<6&&this.out.length<8){
         const i=this.ptr++;this.fed=true;
         this.dec.decode(new EncodedVideoChunk({type:I.sync[i]?'key':'delta',timestamp:I.us[i],data:await this.data(i)}))}
-      else if(this.ptr>=I.n&&!this.flushed){try{await this.dec.flush()}catch(e){this.failed=true;return null}this.flushed=true}
+      else if(this.ptr>=I.n&&!this.flushed){try{await Promise.race([this.dec.flush(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('flush timeout')),3000))])}catch(e){this.failed=true;return null}this.flushed=true}
       else if(this.flushed&&this.out.findIndex(f=>f.timestamp===tus)<0){this.failed=true;return null}
       else await this.waitOut(25);
       k=this.out.findIndex(f=>f.timestamp===tus)}
@@ -1431,14 +1431,21 @@ function getSrc(key,m){
   if(!p){p=(async()=>{const dx=await demuxOf(m);if(!dx||!dx.info.colorOK)return null;const s=new FrameSrc(dx.info,dx.blob);
     if(!(await s.init()))return null;console.debug('collagr: decoding '+m.name+' directly ('+dx.info.codec+')');return s})().catch(()=>null);srcs.set(key,p)}
   return p}
+let decStrikes=0,decOff=false;
+function strike(why){decStrikes++;console.warn('collagr: direct decoding trouble ('+why+')');if(decStrikes>=2&&!decOff){decOff=true;console.warn('collagr: switching to the slower, safe method for the rest of this export')}}
 async function decodeSlot(key,m,want){
-  try{const s=await getSrc(key,m);if(!s||s.failed)return false;
-    const d=m.dur||s.I.dur||1,tt=d>.2?((want%d)+d)%d:0,fr=await s.frameAt(tt);
-    if(!fr)return false;decFrames.set(key,fr);srcUse.set(key,decNo);return true}catch(e){return false}}
+  srcUse.set(key,decNo);
+  try{const s=await Promise.race([getSrc(key,m),new Promise(r=>setTimeout(()=>r('late'),6000))]);
+    if(s==='late'){strike('start');return false}
+    if(!s)return false;if(s.failed)return false;
+    const d=m.dur||s.I.dur||1,tt=d>.2?((want%d)+d)%d:0;
+    const fr=await Promise.race([s.frameAt(tt),new Promise(r=>setTimeout(()=>{s.failed=true;r('late')},5000))]);
+    if(fr==='late'){strike('stalled');return false}
+    if(!fr){if(s.failed)strike('failed');return false}
+    decFrames.set(key,fr);srcUse.set(key,decNo);return true}catch(e){strike('error');return false}}
 function pruneSrcs(){
-  if(decNo%45)return;
-  for(const [key,p] of [...srcs]){if((srcUse.get(key)||0)<decNo-120){srcs.delete(key);srcUse.delete(key);p.then(s=>s&&s.close())}}}
-function closeDecoders(){for(const p of srcs.values())p.then(s=>s&&s.close());srcs.clear();srcUse.clear();decFrames.clear()}
+  for(const [key,p] of [...srcs]){if((srcUse.get(key)||0)<decNo-8){srcs.delete(key);srcUse.delete(key);p.then(s=>s&&s.close())}}}
+function closeDecoders(){for(const p of srcs.values())p.then(s=>s&&s.close());srcs.clear();srcUse.clear();decFrames.clear();decStrikes=0;decOff=false}
 async function prepareFrame(t,fps){
   const segs=S.segs,loc=locate(t),seg=segs[loc.i],lt=loc.lt,TD=Math.min(.7,seg.dur*.4),need=[[seg,lt]];
   if(loc.i>0&&lt<TD&&seg.trans!=='cut')need.push([segs[loc.i-1],segs[loc.i-1].dur+lt]);
@@ -1446,7 +1453,7 @@ async function prepareFrame(t,fps){
   for(const [sg,l] of need){const T=TPL[sg.tpl];
     for(let k=0;k<T.n;k++){const sl=sg.slots[k],m=sl&&mediaById(sl.m);if(!m||m.type!=='video')continue;
       const key=sg.id+':'+k+':'+m.id,want=sl.start+l,slow=()=>seekVideo(getVideo(key,m),m,want,tol);
-      jobs.push(DECODE?decodeSlot(key,m,want).then(ok=>ok?0:slow()):slow())}}
+      jobs.push(DECODE&&!decOff?decodeSlot(key,m,want).then(ok=>ok?0:slow()):slow())}}
   await Promise.all(jobs);pruneSrcs()}
 /* Returns true when the export was handled (finished, cancelled), false when this browser cannot encode this way. */
 async function renderFast(f){try{return await renderFastRun(f)}finally{closeDecoders()}}
