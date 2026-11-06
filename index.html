@@ -338,7 +338,17 @@ html.exfast .cvwrap canvas{display:none}
 .tour-dots i.on{width:18px;border-radius:4px;background:var(--cool)}
 .tour-btns{display:flex;align-items:center;gap:8px}
 .tourlnk{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:6;font-size:11.5px;color:var(--fg-3);background:none;border:0;cursor:pointer;padding:4px 7px;border-radius:7px}
-.tourlnk:hover{color:var(--fg);background:rgba(255,255,255,.06)}
+.tourlnk:hover,.newlnk:hover{color:var(--fg);background:rgba(255,255,255,.06)}
+.newlnk{position:fixed;left:max(14px,env(safe-area-inset-left,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:6;font-size:11.5px;color:var(--fg-3);background:none;border:0;cursor:pointer;padding:4px 7px;border-radius:7px}
+.newlnk .dot{display:none;width:6px;height:6px;border-radius:50%;background:var(--hot);margin:0 0 1px 5px;vertical-align:middle}
+.newlnk.fresh .dot{display:inline-block}
+html.intro:not(.reveal) .newlnk{opacity:0;pointer-events:none}
+.newcard{width:min(520px,100%);max-height:min(86vh,700px);display:flex;flex-direction:column;gap:14px}
+.newlist{flex:1}
+.newlist{list-style:none;margin:0;padding:0;display:grid;gap:12px;overflow:auto;min-height:0}
+.newlist li{padding-left:14px;position:relative;font-size:13px;line-height:1.5;color:var(--fg-2)}
+.newlist li::before{content:'';position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--hot)}
+.newlist b{display:block;color:var(--fg);font-size:13.5px}
 html.intro:not(.reveal) .tourlnk{opacity:0;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.tour-hole,.tour-card,.tour-dots i{transition:none}}
 /* intro / outro maker */
@@ -529,6 +539,23 @@ html.intro:not(.reveal) .tourlnk{opacity:0;pointer-events:none}
   </div>
 </div>
 <button type="button" class="tourlnk" id="tourBtn" title="Replay the quick tour">? Take the tour</button>
+<button type="button" class="newlnk" id="newBtn" title="See what is new in Collagr">What’s new<i class="dot" aria-hidden="true"></i></button>
+<div class="modal" id="newModal" hidden>
+  <div class="mcard newcard" role="dialog" aria-modal="true" aria-labelledby="newTitle">
+    <div class="ph-row"><h2 id="newTitle">What’s new</h2><button type="button" class="btn sm" id="newClose">Close</button></div>
+    <ul class="newlist">
+      <li><b>Pick and reframe any cell</b>Click a cell in the preview to select it. Drag inside it to move the picture and scroll to zoom. Click it again to swap its media.</li>
+      <li><b>Media picker window</b>Choose a clip from a grid of big thumbnails instead of a dropdown.</li>
+      <li><b>Fit mode for every cell</b>Fill the cell, or show the whole clip over a soft blurred background so portrait clips are not cropped.</li>
+      <li><b>Sound for each clip</b>Set the sound level of every clip in every scene, on top of the Clips slider.</li>
+      <li><b>Your project is saved</b>Your clips, music, intro and outro and all settings stay in this browser. Next time, continue from your previous session or start new.</li>
+      <li><b>Templates from A to Z</b>The template list is now in alphabetical order.</li>
+      <li><b>A cooler render window</b>A blurred background and a big progress counter while your video renders, with no flicker behind it.</li>
+      <li><b>Faster export</b>Rendering is much quicker, and it keeps going when you switch tabs.</li>
+      <li><b>Earlier additions</b>28 templates, the intro and outro maker, the Bilfen watermark and a quick tour.</li>
+    </ul>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div id="vpool" style="position:fixed;left:-9999px;top:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none" aria-hidden="true"></div>
 
@@ -1877,11 +1904,14 @@ document.addEventListener('keydown',e=>{
     {t:'Welcome to Collagr by UK',x:'Turn your videos and photos into a finished collage video in a few clicks. This short tour shows where everything is. It takes about a minute.'},
     {el:'#dropzone',pad:6,side:['right','bottom'],t:'Add your clips',x:'Click here, or drop videos and photos anywhere on the page. Your collage builds itself as soon as they land.'},
     {el:'.stage',pad:4,side:['left','right'],t:'Watch the preview',x:'Your collage plays here. Press Space to play or pause, and use the bar underneath to jump around. The Watermark tick under the preview shows or hides your logo.'},
-    {el:'.tplpanel',pad:6,side:['left','bottom'],t:'Pick a look',x:'Mix gives every scene a different design. Browse templates opens all 28 designs, and you can hover a card to preview it.'},
+    {el:'.stage',pad:4,side:['left','right'],t:'Click a cell to edit it',x:'Click any cell in the preview to select it. Drag inside it to move the picture, scroll to zoom, and click it again to swap its media from a picture grid.'},
+    {el:'.scenepanel',pad:6,side:['left','top'],t:'Fine-tune each clip',x:'Each clip in a scene has its own Change button, a Fit menu (fill the cell or show the whole clip), a Zoom slider and its own Sound level.'},
+    {el:'.tplpanel',pad:6,side:['left','bottom'],t:'Pick a look',x:'Mix gives every scene a different design. Browse templates opens all 28 designs, listed A to Z, and you can hover a card to preview it.'},
     {el:'.tl',pad:6,side:['top'],t:'Arrange your scenes',x:'Drag a scene to reorder it, drag its right edge to resize it, and click the ruler to jump. Click a scene to change its template, transition and clips on the right.'},
-    {el:'.sound',pad:6,side:['right','top'],t:'Add music',x:'Upload your own track, set the volume and fades, or keep the clips’ own sound with the Clips slider. Cut on the beat snaps scene lengths to the music.'},
+    {el:'.sound',pad:6,side:['right','top'],t:'Add music',x:'Upload your own track, set the volume and fades, or let the clips’ own sound play with the Clips slider. You can also set each clip’s sound on its own in the Scene panel. Cut on the beat snaps scene lengths to the music.'},
     {el:'#cardBtn',pad:6,side:['bottom'],t:'Intro and outro',x:'Write a title card for the start and the end. New style picks a random font, colors and animation, and you can add your own image.'},
     {el:'.top',pad:4,side:['bottom'],t:'Export your video',x:'Choose 16:9 or 9:16, quality, frame rate and format up here, then press Export video. You can switch tabs while it renders, but keep this page open.'},
+    {t:'Your work is saved',x:'Your project and its files are kept in this browser, so a refresh will not lose anything. Next time you open Collagr, you can continue from your previous session or start new.'},
     {t:'You are ready',x:'Add some clips to begin. You can replay this tour any time with “Take the tour” in the bottom right corner.'}];
   const tour=$('#tour'),hole=$('#tourHole'),card=$('#tourCard');let i=0,isOpen=false,back=null;
   const seen=()=>{try{return localStorage.getItem(KEY)==='1'}catch(e){return false}};
@@ -1926,8 +1956,19 @@ document.addEventListener('keydown',e=>{
     else if(e.code==='Space'||e.key==='Delete'||e.key==='Backspace'){e.stopPropagation()}},true);
   /* first visit: wait for the opening animation to finish, then start */
   if(!seen()){let n=0;const wait=()=>{n++;
-    if(!root.classList.contains('intro')||root.classList.contains('reveal')){setTimeout(()=>{if(!seen()&&$('#tplModal').hidden&&$('#cardModal').hidden)begin()},1600)}
+    if(!root.classList.contains('intro')||root.classList.contains('reveal')){setTimeout(()=>{if(!seen()&&$('#tplModal').hidden&&$('#cardModal').hidden&&$('#resModal').hidden&&$('#pickModal').hidden)begin()},1600)}
     else if(n<120)setTimeout(wait,250)};wait()}
+})();
+
+(function(){
+  const KEY='collagr_new_v38',btn=$('#newBtn'),m=$('#newModal');let back=null;
+  const seen=()=>{try{return localStorage.getItem(KEY)==='1'}catch(e){return true}};
+  if(!seen())btn.classList.add('fresh');
+  function open(){back=document.activeElement;m.hidden=false;btn.classList.remove('fresh');try{localStorage.setItem(KEY,'1')}catch(e){}$('#newClose').focus()}
+  function close(){m.hidden=true;if(back&&back.focus)back.focus();back=null}
+  btn.addEventListener('click',open);$('#newClose').addEventListener('click',close);
+  m.addEventListener('click',e=>{if(e.target===m)close()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!m.hidden){e.stopPropagation();close()}},true);
 })();
 
 let dragN=0;
