@@ -206,7 +206,28 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 .slots{display:flex;flex-direction:column;gap:8px;margin:10px 0}
 .slot{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:start}
 .slot img{width:52px;height:34px;object-fit:cover;border-radius:6px;background:#000}
-.slot select{width:100%}
+.slot{padding:6px;margin:-6px;border-radius:10px;border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s}
+.slot:hover{background:rgba(255,255,255,.04)}
+.slot.on{border-color:var(--hot-a);background:rgba(255,79,139,.09)}
+.slot-pick{position:relative;width:52px;height:34px;padding:0;border:0;border-radius:6px;background:#000;cursor:pointer;overflow:hidden;display:block}
+.slot-pick img{display:block;width:100%;height:100%}
+.slot-pick .slot-n{position:absolute;left:2px;top:2px;min-width:15px;height:15px;border-radius:8px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;line-height:15px;text-align:center;font-weight:700}
+.slot-pick::after{content:'Change';position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,11,16,.66);color:#fff;font-size:10px;font-weight:700;opacity:0;transition:opacity .15s}
+.slot-pick:hover::after,.slot-pick:focus-visible::after{opacity:1}
+.slot-name{display:flex;align-items:center;gap:8px;min-width:0;font-size:12.5px;font-weight:600}
+.slot-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.slot-name button{flex:none}
+#cv.pickable{cursor:pointer}
+.pickcard{width:min(780px,100%);max-height:min(86vh,720px)}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;overflow:auto;padding:2px;min-height:0}
+.pick-it{position:relative;display:flex;flex-direction:column;gap:6px;padding:6px;text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;color:var(--fg);cursor:pointer;font:inherit;transition:transform .15s,border-color .15s,background .15s}
+.pick-it:hover,.pick-it:focus-visible{transform:translateY(-2px);border-color:var(--line-2);background:rgba(255,255,255,.08)}
+.pick-it.cur{border-color:var(--hot-a);box-shadow:0 0 0 1px var(--hot-a) inset}
+.pick-it .pt{position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000}
+.pick-it img{width:100%;height:100%;object-fit:cover;display:block}
+.pick-it .pb{position:absolute;right:5px;bottom:5px;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.72);color:#fff;font-size:10.5px}
+.pick-it .pc{position:absolute;left:5px;top:5px;padding:1px 7px;border-radius:6px;background:var(--hot);color:#1a0a10;font-size:10.5px;font-weight:700}
+.pick-it .pn{font-size:11.5px;color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mini{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:6px;font-size:11.5px;color:var(--fg-3)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .note{font-size:12.5px;color:var(--fg-2)}
@@ -265,6 +286,34 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 .mcard{width:min(440px,100%);background:var(--panel-solid);border:1px solid var(--line-2);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px}
 .bar{height:8px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:var(--hot)}
+/* render window: frosted backdrop, glowing card, big percentage */
+#exModal{background:rgba(6,7,12,.5);-webkit-backdrop-filter:blur(26px) saturate(1.3) brightness(.62);backdrop-filter:blur(26px) saturate(1.3) brightness(.62)}
+html.exfast .cvwrap canvas{display:none}
+.mcard.excard{width:min(480px,100%);padding:24px 26px 22px;gap:14px;border-radius:24px;border:1px solid rgba(255,255,255,.17);
+  background:radial-gradient(120% 90% at 0% 0%,rgba(255,79,139,.2),transparent 55%),radial-gradient(100% 80% at 100% 100%,rgba(110,231,240,.15),transparent 55%),#12151f;
+  box-shadow:0 40px 90px rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.1) inset,0 0 80px rgba(139,124,255,.24);animation:excardin .4s cubic-bezier(.2,.8,.2,1) both}
+@keyframes excardin{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.ex-head{display:flex;align-items:center;gap:12px}
+.ex-head h2{font-size:18px}
+.ex-logo{flex:none;animation:exrot 2.6s cubic-bezier(.65,0,.25,1) infinite}
+@keyframes exrot{0%,18%{transform:rotate(0)}50%,68%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
+.ex-check{display:none;flex:none}
+.ex-pct{display:flex;align-items:baseline;gap:4px;font-family:var(--f-display);font-weight:800;line-height:1}
+.ex-pct b{font-size:64px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;background:var(--hot);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ex-pct span{font-size:26px;color:var(--fg-3)}
+.excard .bar{height:12px;border-radius:999px;background:rgba(255,255,255,.08);box-shadow:0 0 0 1px rgba(255,255,255,.06) inset;overflow:hidden}
+.excard .bar i{position:relative;border-radius:999px;transition:width .3s ease-out;box-shadow:0 0 22px rgba(255,79,139,.6)}
+.excard .bar i::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.55) 50%,transparent 80%);background-size:60% 100%;background-repeat:no-repeat;animation:exshine 1.7s linear infinite}
+@keyframes exshine{from{background-position:-80% 0}to{background-position:180% 0}}
+.excard .note{font-size:13px;line-height:1.5;color:var(--fg-2);min-height:2.9em}
+.excard #exBtns{justify-content:flex-end;gap:10px}
+.excard[data-state=done] .ex-logo,.excard[data-state=error] .ex-logo{display:none}
+.excard[data-state=done] .ex-check{display:block}
+.excard[data-state=done] .ex-pct,.excard[data-state=done] .bar,.excard[data-state=error] .ex-pct,.excard[data-state=error] .bar{display:none}
+.excard[data-state=error] .ex-head h2{color:var(--err)}
+.excard[data-state=done] .note{min-height:0}
+.excard video{border-radius:14px;border:1px solid rgba(255,255,255,.12);box-shadow:0 14px 40px rgba(0,0,0,.5)}
+@media (prefers-reduced-motion:reduce){.mcard.excard{animation:none}.ex-logo{animation:none}.excard .bar i::after{animation:none}.excard .bar i{transition:none}}
 .mcard video{width:100%;max-height:260px;background:#000;border-radius:10px}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);opacity:0;pointer-events:none;
   background:#232738;border:1px solid var(--line-2);padding:9px 14px;border-radius:10px;font-size:13px;z-index:60;transition:.2s;max-width:92vw}
@@ -394,12 +443,24 @@ html.intro:not(.reveal) .tourlnk{opacity:0;pointer-events:none}
 <div class="overlay" id="dropOv" hidden>Drop to add to your reel</div>
 
 <div class="modal" id="exModal" hidden>
-  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="exTitle">
-    <h2 id="exTitle">Rendering</h2>
-    <div class="bar"><i id="exBar"></i></div>
+  <div class="mcard excard" role="dialog" aria-modal="true" aria-labelledby="exTitle" data-state="busy">
+    <div class="ex-head">
+      <span class="logo ex-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <svg class="ex-check" width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><circle cx="15" cy="15" r="14" fill="url(#exg)"/><path d="M9 15.5l4 4 8-9" stroke="#1c0a12" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="exg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6ee7f0"/><stop offset="1" stop-color="#5be3a1"/></linearGradient></defs></svg>
+      <h2 id="exTitle">Rendering</h2>
+    </div>
+    <div class="ex-pct" aria-hidden="true"><b id="exPct">0</b><span>%</span></div>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="exBar"></i></div>
     <p class="note" id="exText"></p>
     <div id="exMedia"></div>
     <div class="row" id="exBtns"></div>
+  </div>
+</div>
+<div class="modal" id="pickModal" hidden>
+  <div class="mcard pickcard" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+    <div class="ph-row"><h2 id="pickTitle">Choose media</h2><button type="button" class="btn sm" id="pickClose">Close</button></div>
+    <p class="note" id="pickSub"></p>
+    <div class="pick-grid" id="pickGrid"></div>
   </div>
 </div>
 <div class="modal" id="tplModal" hidden>
@@ -483,7 +544,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 /* ---------- state ---------- */
 const MAX_TOTAL=300, PAD=14;
 const TRANS=[['fade','Fade'],['slide','Slide'],['zoom','Zoom'],['wipe','Wipe'],['cut','Cut']];
-const S={media:[],segs:[],sel:null,t:0,playing:false,exporting:false,aspect:'16:9',res:720,target:'auto',selTpl:'mix',pps:60,samples:[],music:null,mVol:.8,cVol:0,fade:true,sync:false,wm:true};
+const S={media:[],segs:[],sel:null,t:0,playing:false,exporting:false,aspect:'16:9',res:720,target:'auto',selTpl:'mix',pps:60,samples:[],music:null,mVol:.8,cVol:0,fade:true,sync:false,wm:true,slotSeg:null,slotK:null};
 let dirty=true, frameNo=0;
 const cv=$('#cv'), ctx=cv.getContext('2d',{alpha:false});
 const DEMO={media:[],segs:[],t:0,total:1};
@@ -877,6 +938,35 @@ function drawWM(c,W,H){
   if(!(WM.complete&&WM.naturalWidth>0))return;
   const B=Math.min(W,H),w=Math.max(W*.13,B*.23),h=w*WM.naturalHeight/WM.naturalWidth,m=B*.03;
   c.save();c.globalAlpha=.4;c.drawImage(WM,W-m-w,H-m-h,w,h);c.restore()}
+/* ---------- picking a cell on the preview (editor only, never drawn into the export) ---------- */
+function itemHit(it,x,y){
+  const w=it.w,h=it.h;if(!(w>0&&h>0)||(it.a!=null&&it.a<.08))return false;
+  let dx=x-(it.x+w/2),dy=y-(it.y+h/2);
+  if(it.rot){const c=Math.cos(-it.rot),n=Math.sin(-it.rot);[dx,dy]=[dx*c-dy*n,dx*n+dy*c]}
+  if(it.s&&it.s!==1){dx/=it.s;dy/=it.s}
+  if(it.shape==='circle')return dx*dx/(w*w/4)+dy*dy/(h*h/4)<=1;
+  if(it.pts){let ins=false;const P=it.pts.map(p=>[p[0]-w/2,p[1]-h/2]);
+    for(let i=0,j=P.length-1;i<P.length;j=i++){if((P[i][1]>dy)!==(P[j][1]>dy)&&dx<(P[j][0]-P[i][0])*(dy-P[i][1])/(P[j][1]-P[i][1])+P[i][0])ins=!ins}
+    return ins}
+  return Math.abs(dx)<=w/2&&Math.abs(dy)<=h/2}
+function hitSlot(ev){
+  if(demoOn()||S.exporting||!S.segs.length)return null;
+  const r=cv.getBoundingClientRect(),W=cv.width,H=cv.height,x=(ev.clientX-r.left)*W/r.width,y=(ev.clientY-r.top)*H/r.height;
+  const loc=locate(S.t),seg=S.segs[loc.i];if(!seg||seg.card)return null;
+  const items=TPL[seg.tpl].layout(W,H,loc.lt,clamp(loc.lt/seg.dur,0,1));
+  for(let i=items.length-1;i>=0;i--)if(itemHit(items[i],x,y)){const k=items[i].k==null?i:items[i].k;if(k<TPL[seg.tpl].n)return{seg,k}}
+  return null}
+function drawSel(c,seg,lt,W,H){
+  const items=TPL[seg.tpl].layout(W,H,lt,clamp(lt/seg.dur,0,1)),B=Math.min(W,H);
+  items.forEach((it,i)=>{if((it.k==null?i:it.k)!==S.slotK||!(it.w>0&&it.h>0))return;
+    const w=it.w,h=it.h;c.save();c.translate(it.x+w/2,it.y+h/2);if(it.rot)c.rotate(it.rot);if(it.s&&it.s!==1)c.scale(it.s,it.s);
+    c.beginPath();
+    if(it.shape==='circle')c.ellipse(0,0,w/2,h/2,0,0,Math.PI*2);
+    else if(it.pts){it.pts.forEach((p,n)=>{const X=p[0]-w/2,Y=p[1]-h/2;n?c.lineTo(X,Y):c.moveTo(X,Y)});c.closePath()}
+    else if(it.r)c.roundRect(-w/2,-h/2,w,h,it.r);else c.rect(-w/2,-h/2,w,h);
+    c.fillStyle='rgba(255,79,139,.14)';c.fill();
+    c.lineJoin='round';c.lineWidth=B*.011;c.strokeStyle='rgba(0,0,0,.55)';c.stroke();
+    c.lineWidth=B*.006;c.strokeStyle='#ff4f8b';c.setLineDash([B*.02,B*.012]);c.stroke();c.restore()})}
 function renderSegs(segs,t,live){
   frameNo++;
   const W=cv.width,H=cv.height;
@@ -892,6 +982,7 @@ function renderSegs(segs,t,live){
     else ctx.globalAlpha=e;
     drawSeg(ctx,seg,lt,W,H);ctx.restore();
   }else drawSeg(ctx,seg,lt,W,H);
+  if(live&&!S.exporting&&!seg.card&&S.slotSeg===seg.id&&S.slotK!=null)drawSel(ctx,seg,lt,W,H);
   if(S.wm&&segs!==DEMO.segs)drawWM(ctx,W,H);
   if(live&&S.playing&&lt>seg.dur-1.5&&segs[loc.i+1])warm(segs[loc.i+1]);
   if(live&&S.playing)for(const e of pool.values())if(e.last!==frameNo&&!e.v.paused)e.v.pause();
@@ -1032,13 +1123,14 @@ function renderInspector(){
     <label class="fld"><span>Length</span><input type="range" data-f="dur" min="1.5" max="10" step="0.5" value="${seg.dur}"><b class="mono" data-o="dur">${seg.dur.toFixed(1)}s</b></label>
     <label class="fld"><span>Transition in</span><select data-f="trans">${TRANS.map(t=>`<option value="${t[0]}"${t[0]===seg.trans?' selected':''}>${t[1]}</option>`).join('')}</select></label>
     <div class="row"><button type="button" class="btn hot sm" data-a="editcard">Edit ${nm}</button><button type="button" class="btn sm danger" data-a="del">Remove</button></div>`;return}
-  const T=TPL[seg.tpl],mOpts=id=>S.media.map(m=>`<option value="${m.id}"${m.id===id?' selected':''}>${esc(m.name)}</option>`).join('');
+  const T=TPL[seg.tpl];
   el.innerHTML=`
     <label class="fld"><span>Template</span><select data-f="tpl">${TPLS.map(t=>`<option value="${t.id}"${t.id===seg.tpl?' selected':''}>${t.name}</option>`).join('')}</select></label>
     <label class="fld"><span>Length</span><input type="range" data-f="dur" min="1.5" max="30" step="0.5" value="${seg.dur}"><b class="mono" data-o="dur">${seg.dur.toFixed(1)}s</b></label>
     <label class="fld"><span>Transition in</span><select data-f="trans">${TRANS.map(t=>`<option value="${t[0]}"${t[0]===seg.trans?' selected':''}>${t[1]}</option>`).join('')}</select></label>
     <div class="slots">${seg.slots.slice(0,T.n).map((sl,k)=>{const m=mediaById(sl.m),mx=m&&m.type==='video'?Math.max(0,m.dur-1):0;
-      return `<div class="slot"><img src="${m?m.thumb:''}" alt=""><div><select data-f="slot" data-k="${k}" aria-label="Clip ${k+1}">${mOpts(sl.m)}</select>${m&&m.type==='video'?`<label class="mini">Starts at<input type="range" data-f="start" data-k="${k}" min="0" max="${mx.toFixed(1)}" step="0.1" value="${Math.min(sl.start,mx)}"><span class="mono" data-o="start${k}">${Math.min(sl.start,mx).toFixed(1)}s</span></label>`:''}</div></div>`}).join('')}</div>
+      return `<div class="slot${S.slotSeg===seg.id&&S.slotK===k?' on':''}" data-k="${k}"><button type="button" class="slot-pick" data-a="pick" data-k="${k}" aria-label="Change media for clip ${k+1}"><img src="${m?m.thumb:''}" alt=""><span class="slot-n">${k+1}</span></button><div><div class="slot-name"><span title="${m?esc(m.name):''}">${m?esc(m.name):'No media'}</span><button type="button" class="btn sm" data-a="pick" data-k="${k}">Change</button></div>${m&&m.type==='video'?`<label class="mini">Starts at<input type="range" data-f="start" data-k="${k}" min="0" max="${mx.toFixed(1)}" step="0.1" value="${Math.min(sl.start,mx)}"><span class="mono" data-o="start${k}">${Math.min(sl.start,mx).toFixed(1)}s</span></label>`:''}</div></div>`}).join('')}</div>
+    <p class="note">Tip: click a cell in the preview to pick it, then click it again to swap its media.</p>
     <div class="row"><button type="button" class="btn sm" data-a="dup">Duplicate</button><button type="button" class="btn sm" data-a="shuffle">Shuffle clips</button><button type="button" class="btn sm danger" data-a="del">Delete</button></div>`}
 function seekToSeg(seg){const i=S.segs.indexOf(seg),st=starts()[i];if(S.t<st||S.t>=st+seg.dur){S.t=st+Math.min(.9,seg.dur*.5);dirty=true}}
 $('#sceneBody').addEventListener('input',e=>{
@@ -1049,15 +1141,48 @@ $('#sceneBody').addEventListener('input',e=>{
 $('#sceneBody').addEventListener('change',e=>{
   const seg=segById(S.sel),f=e.target.dataset.f;if(!seg||!f)return;
   if(f==='tpl'){seg.tpl=e.target.value;fitSlots(seg);afterEdit();seekToSeg(seg)}
-  else if(f==='trans'){seg.trans=e.target.value;dirty=true}
-  else if(f==='slot'){const k=+e.target.dataset.k;seg.slots[k]={m:e.target.value,start:0};afterEdit();seekToSeg(seg)}});
+  else if(f==='trans'){seg.trans=e.target.value;dirty=true}});
+function setSlot(segId,k){S.slotSeg=segId;S.slotK=k;
+  document.querySelectorAll('#sceneBody .slot').forEach(r=>{const on=segId===S.sel&&+r.dataset.k===k;r.classList.toggle('on',on);if(on)r.scrollIntoView({block:'nearest'})});dirty=true}
 $('#sceneBody').addEventListener('click',e=>{
-  const a=e.target.dataset.a,seg=segById(S.sel);if(!a||!seg)return;
-  if(a==='del')delSeg(seg.id);
+  const ael=e.target.closest('[data-a]'),a=ael&&ael.dataset.a,seg=segById(S.sel);if(!seg)return;
+  if(!a){const row=e.target.closest('.slot');if(row)setSlot(seg.id,+row.dataset.k);return}
+  if(a==='pick'){setSlot(seg.id,+ael.dataset.k);openPicker(seg.id,+ael.dataset.k)}
+  else if(a==='del')delSeg(seg.id);
   else if(a==='editcard')openCards(seg.card);
   else if(a==='dup'){if(totalDur()+seg.dur>MAX_TOTAL){toast('The reel is at the 5 minute limit.');return}
     const cp={...seg,id:uid('s'),slots:seg.slots.map(s=>({...s}))};S.segs.splice(S.segs.indexOf(seg)+1,0,cp);S.sel=cp.id;afterEdit()}
   else if(a==='shuffle'){const ms=shuffleArr(S.media);seg.slots=seg.slots.map((s,i)=>({m:ms[i%ms.length].id,start:0}));afterEdit();seekToSeg(seg)}});
+
+/* ---------- UI: media picker window ---------- */
+let pickCtx=null,pickBack=null;
+function openPicker(segId,k){
+  const seg=segById(segId);if(!seg||seg.card||!S.media.length)return;
+  pickCtx={segId,k};pickBack=document.activeElement;
+  const cur=seg.slots[k]&&seg.slots[k].m,used=new Set(seg.slots.slice(0,TPL[seg.tpl].n).map(s=>s&&s.m));
+  $('#pickTitle').textContent='Choose media for clip '+(k+1);
+  $('#pickSub').textContent=TPL[seg.tpl].name+' \u00b7 '+S.media.length+' item'+(S.media.length>1?'s':'')+'. Click one to place it in this cell.';
+  $('#pickGrid').innerHTML=S.media.map(m=>`<button type="button" class="pick-it${m.id===cur?' cur':''}" data-id="${m.id}" aria-label="${esc(m.name)}${m.id===cur?' (current)':''}"><span class="pt"><img src="${m.thumb}" alt="">${m.id===cur?'<span class="pc">Current</span>':used.has(m.id)?'<span class="pc" style="background:rgba(0,0,0,.72);color:#fff">In scene</span>':''}<span class="pb">${m.type==='video'?fmt(m.dur||0).replace(/\.\d$/,''):'Photo'}</span></span><span class="pn">${esc(m.name)}</span></button>`).join('');
+  if(S.playing)setPlaying(false);
+  $('#pickModal').hidden=false;
+  const f=$('#pickGrid .cur')||$('#pickGrid .pick-it');if(f)f.focus()}
+function closePicker(){$('#pickModal').hidden=true;pickCtx=null;if(pickBack&&pickBack.focus&&document.contains(pickBack))pickBack.focus();pickBack=null}
+$('#pickGrid').addEventListener('click',e=>{
+  const b=e.target.closest('.pick-it');if(!b||!pickCtx)return;
+  const seg=segById(pickCtx.segId),k=pickCtx.k;
+  if(seg&&b.dataset.id!==(seg.slots[k]&&seg.slots[k].m)){seg.slots[k]={m:b.dataset.id,start:0};afterEdit();seekToSeg(seg)}
+  closePicker()});
+$('#pickClose').addEventListener('click',closePicker);
+$('#pickModal').addEventListener('click',e=>{if(e.target===$('#pickModal'))closePicker()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#pickModal').hidden)closePicker()});
+cv.addEventListener('mousemove',e=>{cv.classList.toggle('pickable',!!hitSlot(e))});
+cv.addEventListener('click',e=>{
+  const h=hitSlot(e);
+  if(!h){if(S.slotK!=null){S.slotSeg=null;S.slotK=null;renderInspector();dirty=true}return}
+  const again=S.slotSeg===h.seg.id&&S.slotK===h.k;
+  if(S.sel!==h.seg.id){S.sel=h.seg.id;renderTimeline();S.slotSeg=h.seg.id;S.slotK=h.k;renderInspector();dirty=true;
+    const row=document.querySelector('#sceneBody .slot.on');if(row)row.scrollIntoView({block:'nearest'});return}
+  if(again)openPicker(h.seg.id,h.k);else setSlot(h.seg.id,h.k)});
 
 /* ---------- UI: timeline ---------- */
 const tlwrap=$('#tlwrap'),tlinner=$('#tlinner'),ruler=$('#ruler'),track=$('#track'),phead=$('#phead');
@@ -1124,7 +1249,7 @@ function loop(now){
     dirty=true}
   if(S.playing&&msrc&&actx&&actx.state==='running'){const ex=aStart.t+(actx.currentTime-aStart.ctx);if(Math.abs(ex-S.t)>.3)audioStart(S.t)}
   if(demoOn()){if(!CALM)DEMO.t=(DEMO.t+dt)%DEMO.total;dirty=true}
-  if(dirty){dirty=false;renderAt(S.t);updateTransport();if(S.exporting)updateExportUI()}
+  if(dirty){dirty=false;renderAt(S.t);if(!document.documentElement.classList.contains('exfast'))updateTransport();if(S.exporting)updateExportUI()}
   requestAnimationFrame(loop)}
 $('#playBtn').addEventListener('click',()=>setPlaying(!S.playing));
 $('#seek').addEventListener('input',e=>{S.t=+e.target.value/1000*totalDur();dirty=true});
@@ -1303,7 +1428,9 @@ async function detectFormats(){
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function openModal(title,text,btns,media=''){
   $('#exTitle').textContent=title;$('#exText').textContent=text;$('#exMedia').innerHTML=media;
+  $('#exModal .excard').dataset.state=btns.some(b=>b.id==='save')?'done':/failed|not available/i.test(title)?'error':'busy';
   $('#exBtns').innerHTML=btns.map(b=>`<button type="button" class="btn ${b.cls||''}" data-x="${b.id}">${b.label}</button>`).join('');$('#exModal').hidden=false}
+new MutationObserver(()=>{const w=parseFloat($('#exBar').style.width)||0,p=Math.round(clamp(w,0,100));$('#exPct').textContent=p;$('#exModal .bar').setAttribute('aria-valuenow',p)}).observe($('#exBar'),{attributes:true,attributeFilter:['style']});
 function updateExportUI(){if(X&&X.fast)return;const total=totalDur(),pct=clamp(S.t/total,0,1);$('#exBar').style.width=(pct*100).toFixed(1)+'%';
   $('#exText').textContent='Rendered '+fmt(S.t)+' of '+fmt(total)+'. Keep this tab open and in view until it finishes.'}
 const yieldNow=()=>new Promise(r=>{const c=new MessageChannel();c.port1.onmessage=()=>r();c.port2.postMessage(0)});
@@ -1456,7 +1583,8 @@ async function prepareFrame(t,fps){
       jobs.push(DECODE&&!decOff?decodeSlot(key,m,want).then(ok=>ok?0:slow()):slow())}}
   await Promise.all(jobs);pruneSrcs()}
 /* Returns true when the export was handled (finished, cancelled), false when this browser cannot encode this way. */
-async function renderFast(f){try{return await renderFastRun(f)}finally{closeDecoders()}}
+function stallGuard(p,ms,what){let t;return Promise.race([p,new Promise((_,rj)=>{t=setTimeout(()=>rj(new Error('Rendering stopped while '+what+'. Try a lower quality setting, or reload the page and export again')),ms)})]).finally(()=>clearTimeout(t))}
+async function renderFast(f){try{return await renderFastRun(f)}finally{closeDecoders();document.documentElement.classList.remove('exfast')}}
 async function renderFastRun(f){
   const fps=+$('#fpsSel').value||30,W=cv.width,H=cv.height,total=totalDur(),n=Math.max(1,Math.ceil(total*fps));
   const bps=Math.round((S.res>=1080?10e6:S.res<=480?3e6:6e6)*(fps>30?1.5:1));
@@ -1493,7 +1621,7 @@ async function renderFastRun(f){
   const feed=upTo=>{if(!aenc)return;const end=Math.min(mix.length,Math.floor(upTo*48000)),L=mix.getChannelData(0),R=mix.numberOfChannels>1?mix.getChannelData(1):L;
     while(aPos<end){const n=Math.min(4800,end-aPos),d=new Float32Array(n*2);d.set(L.subarray(aPos,aPos+n),0);d.set(R.subarray(aPos,aPos+n),n);
       aenc.encode(new AudioData({format:'f32-planar',sampleRate:48000,numberOfFrames:n,numberOfChannels:2,timestamp:Math.round(aPos/48000*1e6),data:d}));aPos+=n}};
-  X.fast=true;
+  X.fast=true;document.documentElement.classList.add('exfast');
   $('#exTitle').textContent='Rendering your video';
   const tAt=i=>Math.min(i/fps,Math.max(0,total-.0005)),tStart=performance.now();
   let nextP=prepareFrame(tAt(0),fps);
@@ -1501,8 +1629,9 @@ async function renderFastRun(f){
     if(X.cancel){if(nextP)nextP.catch(()=>{});try{enc.close()}catch(_){}try{aenc&&aenc.close()}catch(_){}return true}
     if(err)throw err;
     const t=tAt(i);
-    S.t=t;await nextP;renderAt(t);
-    while(enc.encodeQueueSize>6)await new Promise(r=>{enc.addEventListener('dequeue',r,{once:true});setTimeout(r,50)});
+    S.t=t;await stallGuard(nextP,60000,'getting the clips ready');renderAt(t);
+    const bt0=performance.now();
+    while(enc.encodeQueueSize>6){if(performance.now()-bt0>30000)throw new Error('The video encoder stopped responding. Try a lower quality setting, or reload the page and export again');await new Promise(r=>{enc.addEventListener('dequeue',r,{once:true});setTimeout(r,50)})}
     const vf=new VideoFrame(cv,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});
     enc.encode(vf,{keyFrame:i%(fps*2)===0});vf.close();feed((i+1)/fps);
     /* start getting the next frame's clips ready now, while the progress is updated and the encoder works */
@@ -1513,7 +1642,7 @@ async function renderFastRun(f){
       $('#exText').textContent='Rendered '+fmt(t)+' of '+fmt(total)+' ('+fps+' fps).'+eta+' You can switch tabs, but keep this page open.';
       await yieldNow()}
   }
-  feed(total+1);await enc.flush();if(aenc)await aenc.flush();if(err)throw err;
+  feed(total+1);await stallGuard(enc.flush(),120000,'finishing the video');if(aenc)await stallGuard(aenc.flush(),60000,'finishing the audio');if(err)throw err;
   if(X.cancel){try{enc.close()}catch(_){}try{aenc&&aenc.close()}catch(_){}return true}
   muxer.finalize();enc.close();if(aenc)aenc.close();
   X.blob=new Blob([target.buffer],{type:isMp4?'video/mp4':'video/webm'});
