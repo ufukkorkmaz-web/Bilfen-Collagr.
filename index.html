@@ -461,6 +461,14 @@ html.intro:not(.reveal) .tourlnk{opacity:0;pointer-events:none}
     <div class="row" id="exBtns"></div>
   </div>
 </div>
+<div class="modal" id="resModal" hidden>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <h2 id="resTitle">Welcome back</h2>
+    <p class="note" id="resText"></p>
+    <div class="row"><button type="button" class="btn hot" id="resGo">Continue from previous session</button><button type="button" class="btn" id="resNew">Start new</button></div>
+    <p class="note" style="font-size:11.5px;color:var(--fg-3)">Starting new deletes the saved project and its files from this browser.</p>
+  </div>
+</div>
 <div class="modal" id="pickModal" hidden>
   <div class="mcard pickcard" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
     <div class="ph-row"><h2 id="pickTitle">Choose media</h2><button type="button" class="btn sm" id="pickClose">Close</button></div>
@@ -812,6 +820,7 @@ const TPLS=[
   return o}}
 ];
 const TPL=Object.fromEntries(TPLS.map(t=>[t.id,t]));
+const TPLS_AZ=[...TPLS].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));
 /* ---------- intro / outro cards ---------- */
 const CARD_FONTS=['Bricolage Grotesque','Playfair Display','Abril Fatface','Bebas Neue','Pacifico','Lobster','Righteous','Permanent Marker','Monoton','Caveat','Orbitron','Anton','DM Serif Display','Fredoka','Shrikhand','Bungee','Cinzel','Special Elite','Rubik Mono One','Figtree'];
 const CARD_CAPS=['Bebas Neue','Anton','Bungee','Cinzel','Monoton','Orbitron','Righteous','Rubik Mono One'];
@@ -1106,7 +1115,7 @@ const mixIcon='<svg viewBox="0 0 24 24" fill="none" stroke="#1c0a12" stroke-widt
 function buildTplStrip(){
   const port=S.aspect==='9:16',tw=port?180:320,th=port?320:180;
   $('#tstrip').innerHTML=`<button type="button" class="tcard mix" data-id="mix" aria-pressed="false"><span class="mixface${port?' port':''}">${mixIcon}</span><span class="tname">Mix</span><span class="tsub">Random look per scene</span></button>`+
-    TPLS.map(t=>`<button type="button" class="tcard" data-id="${t.id}" aria-pressed="false"><canvas width="${tw}" height="${th}"></canvas><span class="tname">${t.name}</span><span class="tsub">${t.n} ${t.n>1?'clips':'clip'}</span></button>`).join('');
+    TPLS_AZ.map(t=>`<button type="button" class="tcard" data-id="${t.id}" aria-pressed="false"><canvas width="${tw}" height="${th}"></canvas><span class="tname">${t.name}</span><span class="tsub">${t.n} ${t.n>1?'clips':'clip'}</span></button>`).join('');
   document.querySelectorAll('.tcard:not(.mix)').forEach(card=>{drawThumb(card.querySelector('canvas'),card.dataset.id,TPL[card.dataset.id].tt||2.2)});
   renderTplState()}
 function renderTplState(){
@@ -1136,7 +1145,7 @@ function renderInspector(){
     <div class="row"><button type="button" class="btn hot sm" data-a="editcard">Edit ${nm}</button><button type="button" class="btn sm danger" data-a="del">Remove</button></div>`;return}
   const T=TPL[seg.tpl];
   el.innerHTML=`
-    <label class="fld"><span>Template</span><select data-f="tpl">${TPLS.map(t=>`<option value="${t.id}"${t.id===seg.tpl?' selected':''}>${t.name}</option>`).join('')}</select></label>
+    <label class="fld"><span>Template</span><select data-f="tpl">${TPLS_AZ.map(t=>`<option value="${t.id}"${t.id===seg.tpl?' selected':''}>${t.name}</option>`).join('')}</select></label>
     <label class="fld"><span>Length</span><input type="range" data-f="dur" min="1.5" max="30" step="0.5" value="${seg.dur}"><b class="mono" data-o="dur">${seg.dur.toFixed(1)}s</b></label>
     <label class="fld"><span>Transition in</span><select data-f="trans">${TRANS.map(t=>`<option value="${t[0]}"${t[0]===seg.trans?' selected':''}>${t[1]}</option>`).join('')}</select></label>
     <div class="slots">${seg.slots.slice(0,T.n).map((sl,k)=>{const m=mediaById(sl.m),mx=m&&m.type==='video'?Math.max(0,m.dur-1):0;
@@ -1943,10 +1952,19 @@ const store=(()=>{
   setInterval(save,1500);
   addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
   const bump=id=>{const n=parseInt(String(id).slice(1),36);if(isFinite(n)&&n>_id)_id=n};
-  async function restore(){
+  async function start(){
     let rec;try{rec=await tx('meta','readonly',o=>o.get('project'))}catch(e){ready=true;return}
     let p;try{p=rec&&JSON.parse(rec.json)}catch(e){p=null}
     if(!p||!p.media||!p.media.length){ready=true;return}
+    const root=document.documentElement;
+    for(let i=0;i<60&&root.classList.contains('intro');i++)await new Promise(r=>setTimeout(r,100));
+    const n=p.media.length,len=(p.segs||[]).reduce((a,x)=>a+(x.dur||0),0),when=new Date(rec.saved||Date.now());
+    $('#resText').textContent='Your last project is still saved in this browser: '+n+(n>1?' clips':' clip')+(len?', about '+fmt(len).replace('.0','')+' long':'')+', last edited '+when.toLocaleString([],{dateStyle:'medium',timeStyle:'short'})+'.';
+    const m=$('#resModal');m.hidden=false;$('#resGo').focus();
+    const done=()=>{m.hidden=true};
+    $('#resGo').onclick=()=>{done();restore(p)};
+    $('#resNew').onclick=()=>{done();wipe().then(()=>{ready=true;toast('Started a new project.')})}}
+  async function restore(p){
     busy=true;toast('Restoring your last project...');
     try{
       for(const id of p.media){const f=await getFile(id);if(!f)continue;
@@ -1976,7 +1994,7 @@ const store=(()=>{
       toast('Welcome back. Your last project was restored.');
     }catch(e){console.error(e)}
     busy=false;ready=true;lastJson=''}
-  return{putFile,delFile,wipe,restore,markReady:()=>{ready=true}}
+  return{putFile,delFile,wipe,start,markReady:()=>{ready=true}}
 })();
 
 /* ---------- start (empty project plays the looping Mix showcase) ---------- */
@@ -1990,7 +2008,7 @@ function init(){
   detectFormats();setCanvasSize();buildTplStrip();renderMedia();
   afterEdit();fitView();setPlaying(false);requestAnimationFrame(loop)}
 init();
-store.restore();
+store.start();
 /* video-export helpers load in the background so they can never hold up the page or the opening animation */
 Promise.all(['https://cdn.jsdelivr.net/npm/mp4-muxer@5/build/mp4-muxer.js','https://cdn.jsdelivr.net/npm/webm-muxer@5/build/webm-muxer.js'].map(u=>new Promise(r=>{
   const e=document.createElement('script');e.src=u;e.async=true;e.onload=e.onerror=()=>r();document.head.appendChild(e)}))).then(()=>detectFormats()).catch(()=>{});
