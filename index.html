@@ -218,6 +218,8 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 .slot-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .slot-name button{flex:none}
 #cv.pickable{cursor:pointer}
+#cv.panning{cursor:grabbing}
+#cv{touch-action:none}
 .pickcard{width:min(780px,100%);max-height:min(86vh,720px)}
 .pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;overflow:auto;padding:2px;min-height:0}
 .pick-it{position:relative;display:flex;flex-direction:column;gap:6px;padding:6px;text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;color:var(--fg);cursor:pointer;font:inherit;transition:transform .15s,border-color .15s,background .15s}
@@ -935,7 +937,9 @@ function drawSeg(c,seg,lt,W,H,resolver=srcFor){
   const get=k=>{if(!(k in cache))cache[k]=resolver(seg,k,lt);return cache[k]};
   paintBG(c,T,W,H,T.amb?get(0):null);
   if(T.deco)T.deco(c,W,H,lt,p);
-  T.layout(W,H,lt,p).forEach((it,i)=>drawItem(c,it,get(it.k==null?i:it.k)));
+  T.layout(W,H,lt,p).forEach((it,i)=>{const k=it.k==null?i:it.k,sl=seg.slots[k];
+    if(sl&&(sl.fz>1||sl.fx||sl.fy))it=Object.assign({},it,{zoom:(it.zoom||1)*(sl.fz||1),px:(it.px||0)+(sl.fx||0),py:(it.py||0)+(sl.fy||0)});
+    drawItem(c,it,get(k))});
 }
 function renderAt(t){if(demoOn())renderSegs(DEMO.segs,DEMO.t,false);else renderSegs(S.segs,t,true)}
 /* ---------- watermark (bottom right, drawn on every frame so it is in the exported video too) ---------- */
@@ -960,7 +964,7 @@ function hitSlot(ev){
   const r=cv.getBoundingClientRect(),W=cv.width,H=cv.height,x=(ev.clientX-r.left)*W/r.width,y=(ev.clientY-r.top)*H/r.height;
   const loc=locate(S.t),seg=S.segs[loc.i];if(!seg||seg.card)return null;
   const items=TPL[seg.tpl].layout(W,H,loc.lt,clamp(loc.lt/seg.dur,0,1));
-  for(let i=items.length-1;i>=0;i--)if(itemHit(items[i],x,y)){const k=items[i].k==null?i:items[i].k;if(k<TPL[seg.tpl].n)return{seg,k}}
+  for(let i=items.length-1;i>=0;i--)if(itemHit(items[i],x,y)){const k=items[i].k==null?i:items[i].k;if(k<TPL[seg.tpl].n)return{seg,k,it:items[i]}}
   return null}
 function drawSel(c,seg,lt,W,H){
   const items=TPL[seg.tpl].layout(W,H,lt,clamp(lt/seg.dur,0,1)),B=Math.min(W,H);
@@ -1022,7 +1026,7 @@ async function importFile(f){
       const dur=v.duration;if(!isFinite(dur)||!v.videoWidth)throw new Error('unsupported');
       v.currentTime=Math.min(1,dur*.2);await waitEv(v,'seeked',4000);
       const thumb=makeThumb(v),w=v.videoWidth,h=v.videoHeight;v.removeAttribute('src');v.load();
-      return{id:uid('m'),type:'video',name:f.name,url,w,h,dur,thumb}
+      return{id:uid('m'),type:'video',name:f.name,url,w,h,dur,thumb,file:f}
     }catch(e){URL.revokeObjectURL(url);throw e}
   }
   let bmp;
@@ -1031,23 +1035,23 @@ async function importFile(f){
     try{await img.decode()}finally{URL.revokeObjectURL(url)}bmp=img}
   const sw=bmp.width||bmp.naturalWidth,sh=bmp.height||bmp.naturalHeight,sc=Math.min(1,1920/Math.max(sw,sh)),c=mk(Math.round(sw*sc),Math.round(sh*sc));
   c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);if(bmp.close)bmp.close();
-  return{id:uid('m'),type:'image',name:f.name,src:c,w:c.width,h:c.height,thumb:makeThumb(c)}
+  return{id:uid('m'),type:'image',name:f.name,src:c,w:c.width,h:c.height,thumb:makeThumb(c),file:f}
 }
 async function addFiles(list){
   const files=[...list].filter(f=>/^(image|video)\//.test(f.type)||/\.(mp4|mov|m4v|webm|jpe?g|png|gif|webp|avif|bmp)$/i.test(f.name));
   if(!files.length){toast('Those files are not videos or photos.');return}
   toast('Reading '+files.length+(files.length>1?' files':' file')+'...');
   let added=0;const bad=[];
-  for(const f of files){try{S.media.push(await importFile(f));added++;renderMedia()}catch(e){bad.push(f.name)}}
+  for(const f of files){try{const m=await importFile(f);S.media.push(m);added++;renderMedia();store.putFile(m.id,f)}catch(e){bad.push(f.name)}}
   if(added){autoGenerate({shuffle:false});S.t=0;setPlaying(true)}
   toast(bad.length?(added?'Added '+added+'. ':'')+'Could not read: '+bad.slice(0,2).join(', ')+(bad.length>2?' and more':''):'Added '+added+(added>1?' items':' item')+'. Collage built.');
 }
 function removeMedia(id){
-  const m=mediaById(id);if(!m)return;S.media=S.media.filter(x=>x.id!==id);dropPooled(id);if(m.url)URL.revokeObjectURL(m.url);
+  const m=mediaById(id);if(!m)return;store.delFile(id);S.media=S.media.filter(x=>x.id!==id);dropPooled(id);if(m.url)URL.revokeObjectURL(m.url);
   if(!S.media.length){S.segs=[];S.sel=null}
   else S.segs.forEach(s=>s.slots.forEach(sl=>{if(sl.m===id){sl.m=S.media[0].id;sl.start=0}}));
   renderMedia();afterEdit()}
-function clearAll(){S.media.forEach(m=>{if(m.url)URL.revokeObjectURL(m.url);dropPooled(m.id)});S.media=[];S.segs=[];S.sel=null;S.t=0;setPlaying(false);renderMedia();afterEdit()}
+function clearAll(){store.wipe();S.media.forEach(m=>{if(m.url)URL.revokeObjectURL(m.url);dropPooled(m.id)});S.media=[];S.segs=[];S.sel=null;S.t=0;setPlaying(false);renderMedia();afterEdit()}
 
 /* ---------- timeline model ---------- */
 function mixSeq(K){const out=[];let bag=[];
@@ -1136,14 +1140,15 @@ function renderInspector(){
     <label class="fld"><span>Length</span><input type="range" data-f="dur" min="1.5" max="30" step="0.5" value="${seg.dur}"><b class="mono" data-o="dur">${seg.dur.toFixed(1)}s</b></label>
     <label class="fld"><span>Transition in</span><select data-f="trans">${TRANS.map(t=>`<option value="${t[0]}"${t[0]===seg.trans?' selected':''}>${t[1]}</option>`).join('')}</select></label>
     <div class="slots">${seg.slots.slice(0,T.n).map((sl,k)=>{const m=mediaById(sl.m),mx=m&&m.type==='video'?Math.max(0,m.dur-1):0;
-      return `<div class="slot${S.slotSeg===seg.id&&S.slotK===k?' on':''}" data-k="${k}"><button type="button" class="slot-pick" data-a="pick" data-k="${k}" aria-label="Change media for clip ${k+1}"><img src="${m?m.thumb:''}" alt=""><span class="slot-n">${k+1}</span></button><div><div class="slot-name"><span title="${m?esc(m.name):''}">${m?esc(m.name):'No media'}</span><button type="button" class="btn sm" data-a="pick" data-k="${k}">Change</button></div>${m&&m.type==='video'?`<label class="mini">Starts at<input type="range" data-f="start" data-k="${k}" min="0" max="${mx.toFixed(1)}" step="0.1" value="${Math.min(sl.start,mx)}"><span class="mono" data-o="start${k}">${Math.min(sl.start,mx).toFixed(1)}s</span></label><label class="mini snd">Sound<input type="range" data-f="vol" data-k="${k}" min="0" max="100" step="5" value="${Math.round(slVol(sl)*100)}" aria-label="Sound of clip ${k+1}"><span class="mono" data-o="vol${k}">${volTxt(sl)}</span></label><button type="button" class="linkbtn" data-a="volreset" data-k="${k}"${typeof sl.vol==='number'?'':' hidden'}>Use the Clips setting</button>`:''}</div></div>`}).join('')}</div>
-    <p class="note">Tip: click a cell in the preview to pick it, then click it again to swap its media.</p>
+      return `<div class="slot${S.slotSeg===seg.id&&S.slotK===k?' on':''}" data-k="${k}"><button type="button" class="slot-pick" data-a="pick" data-k="${k}" aria-label="Change media for clip ${k+1}"><img src="${m?m.thumb:''}" alt=""><span class="slot-n">${k+1}</span></button><div><div class="slot-name"><span title="${m?esc(m.name):''}">${m?esc(m.name):'No media'}</span><button type="button" class="btn sm" data-a="pick" data-k="${k}">Change</button></div><label class="mini">Zoom<input type="range" data-f="zoom" data-k="${k}" min="100" max="300" step="5" value="${Math.round((sl.fz||1)*100)}" aria-label="Zoom of clip ${k+1}"><span class="mono" data-o="zoom${k}">${Math.round((sl.fz||1)*100)}%</span></label>${m&&m.type==='video'?`<label class="mini">Starts at<input type="range" data-f="start" data-k="${k}" min="0" max="${mx.toFixed(1)}" step="0.1" value="${Math.min(sl.start,mx)}"><span class="mono" data-o="start${k}">${Math.min(sl.start,mx).toFixed(1)}s</span></label><label class="mini snd">Sound<input type="range" data-f="vol" data-k="${k}" min="0" max="100" step="5" value="${Math.round(slVol(sl)*100)}" aria-label="Sound of clip ${k+1}"><span class="mono" data-o="vol${k}">${volTxt(sl)}</span></label><button type="button" class="linkbtn" data-a="volreset" data-k="${k}"${typeof sl.vol==='number'?'':' hidden'}>Use the Clips setting</button>`:''}<button type="button" class="linkbtn" data-a="framereset" data-k="${k}"${sl.fz>1||sl.fx||sl.fy?'':' hidden'}>Reset framing</button></div></div>`}).join('')}</div>
+    <p class="note">Tip: click a cell in the preview to pick it. Drag inside it to move the picture, scroll to zoom, or click it again to swap its media.</p>
     <div class="row"><button type="button" class="btn sm" data-a="dup">Duplicate</button><button type="button" class="btn sm" data-a="shuffle">Shuffle clips</button><button type="button" class="btn sm danger" data-a="del">Delete</button></div>`}
 function seekToSeg(seg){const i=S.segs.indexOf(seg),st=starts()[i];if(S.t<st||S.t>=st+seg.dur){S.t=st+Math.min(.9,seg.dur*.5);dirty=true}}
 $('#sceneBody').addEventListener('input',e=>{
   const seg=segById(S.sel),f=e.target.dataset.f;if(!seg||!f)return;
   if(f==='dur'){const others=totalDur()-seg.dur;seg.dur=clamp(snapDur(+e.target.value),1.5,Math.min(30,MAX_TOTAL-others));e.target.value=seg.dur;
     $('#sceneBody [data-o="dur"]').textContent=seg.dur.toFixed(1)+'s';renderTimeline();updateTotals();dirty=true}
+  else if(f==='zoom'){const k=+e.target.dataset.k,f0=frameOf(seg.slots[k]);setFrame(seg,k,+e.target.value/100,f0.fx,f0.fy);syncFrameUI(seg);setSlot(seg.id,k)}
   else if(f==='vol'){const k=+e.target.dataset.k;seg.slots[k].vol=+e.target.value/100;$('#sceneBody [data-o="vol'+k+'"]').textContent=volTxt(seg.slots[k]);const rb=$('#sceneBody [data-a="volreset"][data-k="'+k+'"]');if(rb)rb.hidden=false;dirty=true}
   else if(f==='start'){const k=+e.target.dataset.k;seg.slots[k].start=+e.target.value;$('#sceneBody [data-o="start'+k+'"]').textContent=(+e.target.value).toFixed(1)+'s';seekToSeg(seg);dirty=true}});
 $('#sceneBody').addEventListener('change',e=>{
@@ -1156,6 +1161,7 @@ $('#sceneBody').addEventListener('click',e=>{
   const ael=e.target.closest('[data-a]'),a=ael&&ael.dataset.a,seg=segById(S.sel);if(!seg)return;
   if(!a){const row=e.target.closest('.slot');if(row)setSlot(seg.id,+row.dataset.k);return}
   if(a==='pick'){setSlot(seg.id,+ael.dataset.k);openPicker(seg.id,+ael.dataset.k)}
+  else if(a==='framereset'){const k=+ael.dataset.k;setFrame(seg,k,1,0,0);renderInspector()}
   else if(a==='volreset'){const k=+ael.dataset.k;delete seg.slots[k].vol;renderInspector();dirty=true}
   else if(a==='del')delSeg(seg.id);
   else if(a==='editcard')openCards(seg.card);
@@ -1184,14 +1190,44 @@ $('#pickGrid').addEventListener('click',e=>{
 $('#pickClose').addEventListener('click',closePicker);
 $('#pickModal').addEventListener('click',e=>{if(e.target===$('#pickModal'))closePicker()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#pickModal').hidden)closePicker()});
-cv.addEventListener('mousemove',e=>{cv.classList.toggle('pickable',!!hitSlot(e))});
-cv.addEventListener('click',e=>{
-  const h=hitSlot(e);
-  if(!h){if(S.slotK!=null){S.slotSeg=null;S.slotK=null;renderInspector();dirty=true}return}
-  const again=S.slotSeg===h.seg.id&&S.slotK===h.k;
+function frameOf(sl){return{fz:sl.fz||1,fx:sl.fx||0,fy:sl.fy||0}}
+function setFrame(seg,k,fz,fx,fy){const sl=seg.slots[k];if(!sl)return;
+  sl.fz=clamp(fz,1,4);sl.fx=fx;sl.fy=fy;if(sl.fz<=1&&!sl.fx&&!sl.fy){delete sl.fz;delete sl.fx;delete sl.fy}dirty=true}
+function syncFrameUI(seg){const k=S.slotK;if(seg.id!==S.sel||k==null)return;const sl=seg.slots[k];if(!sl)return;
+  const r=document.querySelector('#sceneBody input[data-f="zoom"][data-k="'+k+'"]'),o=document.querySelector('#sceneBody [data-o="zoom'+k+'"]'),b=document.querySelector('#sceneBody [data-a="framereset"][data-k="'+k+'"]');
+  if(r)r.value=Math.round((sl.fz||1)*100);if(o)o.textContent=Math.round((sl.fz||1)*100)+'%';if(b)b.hidden=!(sl.fz>1||sl.fx||sl.fy)}
+let pdrag=null;
+cv.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;const h=hitSlot(e);
+  if(!h){if(S.slotK!=null){S.slotSeg=null;S.slotK=null;renderInspector();dirty=true}pdrag=null;return}
+  const was=S.slotSeg===h.seg.id&&S.slotK===h.k&&S.sel===h.seg.id;
   if(S.sel!==h.seg.id){S.sel=h.seg.id;renderTimeline();S.slotSeg=h.seg.id;S.slotK=h.k;renderInspector();dirty=true;
-    const row=document.querySelector('#sceneBody .slot.on');if(row)row.scrollIntoView({block:'nearest'});return}
-  if(again)openPicker(h.seg.id,h.k);else setSlot(h.seg.id,h.k)});
+    const row=document.querySelector('#sceneBody .slot.on');if(row)row.scrollIntoView({block:'nearest'})}
+  else if(!was)setSlot(h.seg.id,h.k);
+  pdrag={id:e.pointerId,seg:h.seg,k:h.k,was,x:e.clientX,y:e.clientY,moved:false,f:frameOf(h.seg.slots[h.k]),it:h.it};
+  try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+cv.addEventListener('pointermove',e=>{
+  const d=pdrag;
+  if(!d||d.id!==e.pointerId){if(!pdrag)cv.classList.toggle('pickable',!!hitSlot(e));return}
+  const r=cv.getBoundingClientRect(),k=cv.width/r.width,dx=(e.clientX-d.x)*k,dy=(e.clientY-d.y)*k;
+  if(!d.moved){if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<5)return;d.moved=true;if(S.playing)setPlaying(false);cv.classList.add('panning')}
+  const it=d.it,m=mediaById(d.seg.slots[d.k].m);if(!m||!(m.w>0&&m.h>0))return;
+  let lx=dx,ly=dy;if(it.rot){const c=Math.cos(-it.rot),n=Math.sin(-it.rot);[lx,ly]=[dx*c-dy*n,dx*n+dy*c]}
+  if(it.s&&it.s!==1){lx/=it.s;ly/=it.s}
+  const fz=d.f.fz,sc=Math.max(it.w/m.w,it.h/m.h)*Math.max(1,(it.zoom||1)*fz),sxs=m.w-it.w/sc,sys=m.h-it.h/sc,bx=it.px||0,by=it.py||0;
+  let fx=d.f.fx,fy=d.f.fy;
+  if(sxs>1)fx=clamp(d.f.fx-(lx/sc)/(sxs/2),-1-bx,1-bx);
+  if(sys>1)fy=clamp(d.f.fy-(ly/sc)/(sys/2),-1-by,1-by);
+  setFrame(d.seg,d.k,fz,fx,fy);syncFrameUI(d.seg)});
+function endDrag(e){const d=pdrag;if(!d||d.id!==e.pointerId)return;pdrag=null;cv.classList.remove('panning');
+  try{cv.releasePointerCapture(e.pointerId)}catch(_){}
+  if(!d.moved&&d.was&&e.type==='pointerup')openPicker(d.seg.id,d.k)}
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+cv.addEventListener('wheel',e=>{
+  if(S.slotK==null||S.slotSeg==null||demoOn()||S.exporting)return;
+  const h=hitSlot(e);if(!h||h.seg.id!==S.slotSeg||h.k!==S.slotK)return;
+  e.preventDefault();const f=frameOf(h.seg.slots[h.k]);
+  setFrame(h.seg,h.k,f.fz*Math.exp(-e.deltaY*.0018),f.fx,f.fy);syncFrameUI(h.seg)},{passive:false});
 
 /* ---------- UI: timeline ---------- */
 const tlwrap=$('#tlwrap'),tlinner=$('#tlinner'),ruler=$('#ruler'),track=$('#track'),phead=$('#phead');
@@ -1391,14 +1427,14 @@ function setMusic(m){
 function afterMusicAdded(msg){
   if(S.segs.length){S.t=0;setPlaying(true);toast(msg)}else toast(msg+' Add photos or videos to hear it with your collage.')}
 function removeMusic(){
-  audioStop();S.music=null;if(S.sync){S.sync=false;unsync()}
+  store.delFile('music');audioStop();S.music=null;if(S.sync){S.sync=false;unsync()}
   renderSound();afterEdit()}
 async function loadMusicFile(f){
   const c=ensureCtx()||new OAC(2,1,48000);
   toast('Reading '+f.name+'...');
   try{
     const buf=await decodeP(c,await f.arrayBuffer());await new Promise(r=>setTimeout(r,30));
-    setMusic({kind:'file',name:f.name,buffer:buf});afterMusicAdded('Music added, about '+Math.round(S.music.bpm)+' bpm.')
+    setMusic({kind:'file',name:f.name,buffer:buf,file:f});store.putFile('music',f);afterMusicAdded('Music added, about '+Math.round(S.music.bpm)+' bpm.')
   }catch(e){console.error(e);toast('Could not read that audio file.')}}
 function routeDrop(list){
   const fl=[...list],au=fl.find(f=>/^audio\//.test(f.type)||/\.(mp3|wav|m4a|aac|ogg|oga|flac)$/i.test(f.name)),rest=fl.filter(f=>f!==au);
@@ -1805,9 +1841,9 @@ document.addEventListener('keydown',e=>{
   $('#cImgSize').addEventListener('input',e=>apply(c=>c.imgSize=+e.target.value));
   $('#cImgIn').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
     const c=C(),url=URL.createObjectURL(f),im=new Image();
-    im.onload=()=>{if(c.imgUrl)URL.revokeObjectURL(c.imgUrl);apply(()=>{c.img=im;c.imgUrl=url;c.imgName=f.name});$('#cImgOpts').hidden=false;$('#cImgRm').hidden=false;$('#cImgName').textContent=f.name;dirty=true};
+    im.onload=()=>{if(c.imgUrl)URL.revokeObjectURL(c.imgUrl);apply(()=>{c.img=im;c.imgUrl=url;c.imgName=f.name;c.imgFile=f});store.putFile('card:'+cur,f);$('#cImgOpts').hidden=false;$('#cImgRm').hidden=false;$('#cImgName').textContent=f.name;dirty=true};
     im.onerror=()=>{URL.revokeObjectURL(url);toast('Could not read that image.')};im.src=url});
-  $('#cImgRm').addEventListener('click',()=>{const c=C();if(c.imgUrl)URL.revokeObjectURL(c.imgUrl);apply(()=>{c.img=null;c.imgUrl='';c.imgName=''},true);
+  $('#cImgRm').addEventListener('click',()=>{const c=C();if(c.imgUrl)URL.revokeObjectURL(c.imgUrl);apply(()=>{c.img=null;c.imgUrl='';c.imgName='';c.imgFile=null},true);store.delFile('card:'+cur);
     $('#cImgOpts').hidden=true;$('#cImgRm').hidden=true;$('#cImgName').textContent=''});
 })();
 
@@ -1877,6 +1913,72 @@ window.addEventListener('dragleave',()=>{dragN=Math.max(0,dragN-1);if(!dragN)$('
 window.addEventListener('dragover',e=>e.preventDefault());
 window.addEventListener('drop',e=>{e.preventDefault();dragN=0;$('#dropOv').hidden=true;if(e.dataTransfer&&e.dataTransfer.files.length)routeDrop(e.dataTransfer.files)});
 
+/* ---------- autosave: keeps the project and its files in this browser until you clear it ---------- */
+const store=(()=>{
+  let dbp=null,warned=false,lastJson='',ready=false,busy=false;
+  const open=()=>dbp||(dbp=new Promise((res,rej)=>{
+    if(!window.indexedDB){rej(new Error('no idb'));return}
+    const r=indexedDB.open('collagr',1);
+    r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('files'))d.createObjectStore('files');if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta')};
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onblocked=()=>rej(new Error('blocked'))}));
+  const tx=(st,mode,fn)=>open().then(db=>new Promise((res,rej)=>{
+    const t=db.transaction(st,mode),q=fn(t.objectStore(st));
+    t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('abort'))}));
+  const warn=()=>{if(warned)return;warned=true;toast('This browser has no room to keep your files, so the project will not survive a refresh.')};
+  const putFile=(id,f)=>{try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}catch(e){}
+    return tx('files','readwrite',o=>o.put({blob:f,name:f.name,type:f.type},id)).catch(warn)};
+  const delFile=id=>tx('files','readwrite',o=>o.delete(id)).catch(()=>{});
+  const getFile=id=>tx('files','readonly',o=>o.get(id)).then(r=>r?new File([r.blob],r.name||'file',{type:r.type||r.blob.type||''}):null).catch(()=>null);
+  const wipe=()=>{lastJson='';return Promise.all([tx('files','readwrite',o=>o.clear()),tx('meta','readwrite',o=>o.clear())]).catch(()=>{})};
+  const cardOut=c=>{const o={};Object.keys(c).forEach(k=>{if(!/^(img|imgUrl|imgFile|_.*)$/.test(k))o[k]=c[k]});o.hasImg=!!c.img;return o};
+  const snap=()=>({v:1,aspect:S.aspect,res:S.res,fps:$('#fpsSel').value,fmt:$('#fmtSel').value,target:S.target,selTpl:S.selTpl,pps:S.pps,
+    mVol:S.mVol,cVol:S.cVol,fade:S.fade,sync:S.sync,wm:S.wm,
+    media:S.media.map(m=>m.id),music:S.music?{name:S.music.name}:null,
+    segs:S.segs.filter(x=>!x.card).map(x=>({id:x.id,tpl:x.tpl,dur:x.dur,trans:x.trans,_d0:x._d0,slots:x.slots})),
+    cards:{intro:cardOut(S.intro),outro:cardOut(S.outro)}});
+  const save=()=>{if(!ready||busy)return;
+    let j;try{j=JSON.stringify(snap())}catch(e){return}
+    if(j===lastJson)return;lastJson=j;
+    tx('meta','readwrite',o=>o.put({json:j,saved:Date.now()},'project')).catch(warn)};
+  setInterval(save,1500);
+  addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+  const bump=id=>{const n=parseInt(String(id).slice(1),36);if(isFinite(n)&&n>_id)_id=n};
+  async function restore(){
+    let rec;try{rec=await tx('meta','readonly',o=>o.get('project'))}catch(e){ready=true;return}
+    let p;try{p=rec&&JSON.parse(rec.json)}catch(e){p=null}
+    if(!p||!p.media||!p.media.length){ready=true;return}
+    busy=true;toast('Restoring your last project...');
+    try{
+      for(const id of p.media){const f=await getFile(id);if(!f)continue;
+        try{const m=await importFile(f);m.id=id;bump(id);S.media.push(m)}catch(e){}}
+      if(!S.media.length){ready=true;busy=false;return}
+      renderMedia();
+      S.aspect=p.aspect||S.aspect;S.res=p.res||S.res;S.target=p.target||'auto';S.pps=p.pps||S.pps;
+      S.mVol=p.mVol??S.mVol;S.cVol=p.cVol??0;S.fade=p.fade!==false;S.wm=p.wm!==false;
+      document.querySelectorAll('[data-aspect]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.aspect===S.aspect)));
+      $('#resSel').value=String(S.res);$('#lenSel').value=String(S.target);if(p.fps)$('#fpsSel').value=p.fps;
+      if(p.fmt&&[...$('#fmtSel').options].some(o=>o.value===p.fmt))$('#fmtSel').value=p.fmt;
+      $('#mVol').value=Math.round(S.mVol*100);$('#cVol').value=Math.round(S.cVol*100);$('#fadeChk').checked=S.fade;$('#wmChk').checked=S.wm;$('#zoom').value=S.pps;
+      setCanvasSize();buildTplStrip();
+      const mf=p.music&&await getFile('music');
+      if(mf){try{const c=ensureCtx()||new OAC(2,1,48000),buf=await decodeP(c,await mf.arrayBuffer());setMusic({kind:'file',name:mf.name,buffer:buf,file:mf})}catch(e){}}
+      for(const k of ['intro','outro']){const c=S[k],d=(p.cards||{})[k];if(!d)continue;
+        const hasImg=d.hasImg;delete d.hasImg;Object.assign(c,d);c._v=(c._v||0)+1;
+        if(hasImg){const f=await getFile('card:'+k);if(f){await new Promise(r=>{const url=URL.createObjectURL(f),im=new Image();im.onload=()=>{c.img=im;c.imgUrl=url;c.imgFile=f;r()};im.onerror=()=>{URL.revokeObjectURL(url);r()};im.src=url})}}
+        if(c.on)await ensureFont(c.font);bump(c.segId||'s0')}
+      const ids=new Set(S.media.map(m=>m.id));
+      S.segs=(p.segs||[]).filter(x=>TPL[x.tpl]).map(x=>{bump(x.id);x.slots=(x.slots||[]).map(sl=>ids.has(sl.m)?sl:{m:S.media[0].id,start:0});return x});
+      S.sync=!!(p.sync&&S.music&&S.music.bpm);$('#beatChk').checked=S.sync;
+      if(!S.segs.length)autoGenerate({shuffle:false});
+      S.segs.forEach(sg=>fitSlots(sg));
+      syncCards();S.selTpl=p.selTpl||'mix';S.t=0;
+      renderSound();afterEdit();$('#empty').hidden=true;
+      toast('Welcome back. Your last project was restored.');
+    }catch(e){console.error(e)}
+    busy=false;ready=true;lastJson=''}
+  return{putFile,delFile,wipe,restore,markReady:()=>{ready=true}}
+})();
+
 /* ---------- start (empty project plays the looping Mix showcase) ---------- */
 function init(){
   S.samples=[0,1,2,3,4,5].map(makeSample); /* placeholder art for template previews only, never added to the project */
@@ -1888,6 +1990,7 @@ function init(){
   detectFormats();setCanvasSize();buildTplStrip();renderMedia();
   afterEdit();fitView();setPlaying(false);requestAnimationFrame(loop)}
 init();
+store.restore();
 /* video-export helpers load in the background so they can never hold up the page or the opening animation */
 Promise.all(['https://cdn.jsdelivr.net/npm/mp4-muxer@5/build/mp4-muxer.js','https://cdn.jsdelivr.net/npm/webm-muxer@5/build/webm-muxer.js'].map(u=>new Promise(r=>{
   const e=document.createElement('script');e.src=u;e.async=true;e.onload=e.onerror=()=>r();document.head.appendChild(e)}))).then(()=>detectFormats()).catch(()=>{});
