@@ -228,6 +228,9 @@ input[type=range]{accent-color:var(--cool);width:100%;min-width:0}
 .pick-it .pb{position:absolute;right:5px;bottom:5px;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.72);color:#fff;font-size:10.5px}
 .pick-it .pc{position:absolute;left:5px;top:5px;padding:1px 7px;border-radius:6px;background:var(--hot);color:#1a0a10;font-size:10.5px;font-weight:700}
 .pick-it .pn{font-size:11.5px;color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linkbtn{background:none;border:0;padding:0;margin-top:4px;color:var(--fg-3);font:inherit;font-size:11px;text-decoration:underline;cursor:pointer}
+.linkbtn:hover{color:var(--fg)}
+.mini .mono{min-width:58px;text-align:right}
 .mini{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:6px;font-size:11.5px;color:var(--fg-3)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .note{font-size:12.5px;color:var(--fg-2)}
@@ -892,6 +895,9 @@ function cardThumb(k){
 
 /* ---------- video pool ---------- */
 let muteVid=false;
+/* a clip's own sound level: its own setting if it has one, otherwise the Clips slider */
+const slVol=sl=>sl&&typeof sl.vol==='number'?sl.vol:S.cVol;
+const anyClipSound=()=>S.cVol>0||S.segs.some(sg=>!sg.card&&sg.slots.some(sl=>sl&&typeof sl.vol==='number'&&sl.vol>0));
 const pool=new Map(), vpoolEl=$('#vpool');
 function evict(){let ok=null,min=Infinity;
   for(const [k,e] of pool){if(e.last<frameNo&&e.last<min){min=e.last;ok=k}}
@@ -915,8 +921,8 @@ function srcFor(seg,k,lt){
   if(m.type==='image')return m.src;
   if(S.exporting){const df=decFrames.get(seg.id+':'+k+':'+m.id);if(df)return df}
   const v=getVideo(seg.id+':'+k+':'+m.id,m);
-  const nv=seg.slots.slice(0,TPL[seg.tpl].n).filter(q=>{const mm=mediaById(q.m);return mm&&mm.type==='video'}).length||1;
-  v.muted=!!v._silent||muteVid||!(S.cVol>0);v.volume=clamp(S.cVol/Math.sqrt(nv),0,1);
+  const nv=seg.slots.slice(0,TPL[seg.tpl].n).filter(q=>{const mm=mediaById(q.m);return mm&&mm.type==='video'&&slVol(q)>0}).length||1;
+  const lv=slVol(sl);v.muted=!!v._silent||muteVid||!(lv>0);v.volume=clamp(lv/Math.sqrt(nv),0,1);
   syncVideo(v,m,sl.start+lt);return v}
 function warm(seg){const T=TPL[seg.tpl];
   for(let k=0;k<T.n;k++){const sl=seg.slots[k],m=sl&&mediaById(sl.m);
@@ -1115,6 +1121,7 @@ function hoverStart(card){if(hovers.get(card)||card.classList.contains('mix'))re
 function hoverStop(card){const r=hovers.get(card);if(!r)return;cancelAnimationFrame(r);hovers.set(card,0);drawThumb(card.querySelector('canvas'),card.dataset.id,TPL[card.dataset.id].tt||2.2)}
 
 /* ---------- UI: inspector ---------- */
+const volTxt=sl=>{const v=slVol(sl),t=v>0?Math.round(v*100)+'%':'Off';return typeof sl.vol==='number'?t:'Auto \u00b7 '+t};
 function renderInspector(){
   const seg=segById(S.sel),el=$('#sceneBody');
   if(!seg){el.innerHTML='<p class="note">Select a scene in the timeline to change its template, length, transition and clips.</p>';return}
@@ -1129,7 +1136,7 @@ function renderInspector(){
     <label class="fld"><span>Length</span><input type="range" data-f="dur" min="1.5" max="30" step="0.5" value="${seg.dur}"><b class="mono" data-o="dur">${seg.dur.toFixed(1)}s</b></label>
     <label class="fld"><span>Transition in</span><select data-f="trans">${TRANS.map(t=>`<option value="${t[0]}"${t[0]===seg.trans?' selected':''}>${t[1]}</option>`).join('')}</select></label>
     <div class="slots">${seg.slots.slice(0,T.n).map((sl,k)=>{const m=mediaById(sl.m),mx=m&&m.type==='video'?Math.max(0,m.dur-1):0;
-      return `<div class="slot${S.slotSeg===seg.id&&S.slotK===k?' on':''}" data-k="${k}"><button type="button" class="slot-pick" data-a="pick" data-k="${k}" aria-label="Change media for clip ${k+1}"><img src="${m?m.thumb:''}" alt=""><span class="slot-n">${k+1}</span></button><div><div class="slot-name"><span title="${m?esc(m.name):''}">${m?esc(m.name):'No media'}</span><button type="button" class="btn sm" data-a="pick" data-k="${k}">Change</button></div>${m&&m.type==='video'?`<label class="mini">Starts at<input type="range" data-f="start" data-k="${k}" min="0" max="${mx.toFixed(1)}" step="0.1" value="${Math.min(sl.start,mx)}"><span class="mono" data-o="start${k}">${Math.min(sl.start,mx).toFixed(1)}s</span></label>`:''}</div></div>`}).join('')}</div>
+      return `<div class="slot${S.slotSeg===seg.id&&S.slotK===k?' on':''}" data-k="${k}"><button type="button" class="slot-pick" data-a="pick" data-k="${k}" aria-label="Change media for clip ${k+1}"><img src="${m?m.thumb:''}" alt=""><span class="slot-n">${k+1}</span></button><div><div class="slot-name"><span title="${m?esc(m.name):''}">${m?esc(m.name):'No media'}</span><button type="button" class="btn sm" data-a="pick" data-k="${k}">Change</button></div>${m&&m.type==='video'?`<label class="mini">Starts at<input type="range" data-f="start" data-k="${k}" min="0" max="${mx.toFixed(1)}" step="0.1" value="${Math.min(sl.start,mx)}"><span class="mono" data-o="start${k}">${Math.min(sl.start,mx).toFixed(1)}s</span></label><label class="mini snd">Sound<input type="range" data-f="vol" data-k="${k}" min="0" max="100" step="5" value="${Math.round(slVol(sl)*100)}" aria-label="Sound of clip ${k+1}"><span class="mono" data-o="vol${k}">${volTxt(sl)}</span></label><button type="button" class="linkbtn" data-a="volreset" data-k="${k}"${typeof sl.vol==='number'?'':' hidden'}>Use the Clips setting</button>`:''}</div></div>`}).join('')}</div>
     <p class="note">Tip: click a cell in the preview to pick it, then click it again to swap its media.</p>
     <div class="row"><button type="button" class="btn sm" data-a="dup">Duplicate</button><button type="button" class="btn sm" data-a="shuffle">Shuffle clips</button><button type="button" class="btn sm danger" data-a="del">Delete</button></div>`}
 function seekToSeg(seg){const i=S.segs.indexOf(seg),st=starts()[i];if(S.t<st||S.t>=st+seg.dur){S.t=st+Math.min(.9,seg.dur*.5);dirty=true}}
@@ -1137,6 +1144,7 @@ $('#sceneBody').addEventListener('input',e=>{
   const seg=segById(S.sel),f=e.target.dataset.f;if(!seg||!f)return;
   if(f==='dur'){const others=totalDur()-seg.dur;seg.dur=clamp(snapDur(+e.target.value),1.5,Math.min(30,MAX_TOTAL-others));e.target.value=seg.dur;
     $('#sceneBody [data-o="dur"]').textContent=seg.dur.toFixed(1)+'s';renderTimeline();updateTotals();dirty=true}
+  else if(f==='vol'){const k=+e.target.dataset.k;seg.slots[k].vol=+e.target.value/100;$('#sceneBody [data-o="vol'+k+'"]').textContent=volTxt(seg.slots[k]);const rb=$('#sceneBody [data-a="volreset"][data-k="'+k+'"]');if(rb)rb.hidden=false;dirty=true}
   else if(f==='start'){const k=+e.target.dataset.k;seg.slots[k].start=+e.target.value;$('#sceneBody [data-o="start'+k+'"]').textContent=(+e.target.value).toFixed(1)+'s';seekToSeg(seg);dirty=true}});
 $('#sceneBody').addEventListener('change',e=>{
   const seg=segById(S.sel),f=e.target.dataset.f;if(!seg||!f)return;
@@ -1148,6 +1156,7 @@ $('#sceneBody').addEventListener('click',e=>{
   const ael=e.target.closest('[data-a]'),a=ael&&ael.dataset.a,seg=segById(S.sel);if(!seg)return;
   if(!a){const row=e.target.closest('.slot');if(row)setSlot(seg.id,+row.dataset.k);return}
   if(a==='pick'){setSlot(seg.id,+ael.dataset.k);openPicker(seg.id,+ael.dataset.k)}
+  else if(a==='volreset'){const k=+ael.dataset.k;delete seg.slots[k].vol;renderInspector();dirty=true}
   else if(a==='del')delSeg(seg.id);
   else if(a==='editcard')openCards(seg.card);
   else if(a==='dup'){if(totalDur()+seg.dur>MAX_TOTAL){toast('The reel is at the 5 minute limit.');return}
@@ -1170,7 +1179,7 @@ function closePicker(){$('#pickModal').hidden=true;pickCtx=null;if(pickBack&&pic
 $('#pickGrid').addEventListener('click',e=>{
   const b=e.target.closest('.pick-it');if(!b||!pickCtx)return;
   const seg=segById(pickCtx.segId),k=pickCtx.k;
-  if(seg&&b.dataset.id!==(seg.slots[k]&&seg.slots[k].m)){seg.slots[k]={m:b.dataset.id,start:0};afterEdit();seekToSeg(seg)}
+  if(seg&&b.dataset.id!==(seg.slots[k]&&seg.slots[k].m)){seg.slots[k]={m:b.dataset.id,start:0,vol:seg.slots[k].vol};if(seg.slots[k].vol===undefined)delete seg.slots[k].vol;afterEdit();seekToSeg(seg)}
   closePicker()});
 $('#pickClose').addEventListener('click',closePicker);
 $('#pickModal').addEventListener('click',e=>{if(e.target===$('#pickModal'))closePicker()});
@@ -1340,11 +1349,11 @@ async function renderMix(total){
   if(S.music){const fg=oc.createGain(),vg=oc.createGain(),src=oc.createBufferSource(),d=S.music.dur;
     vg.gain.value=S.mVol;fg.connect(vg);vg.connect(comp);scheduleFade(fg.gain,0,0,total);
     src.buffer=S.music.buffer;src.loop=true;src.connect(fg);src.start(0,musicOff()%d)}
-  if(S.cVol>0){const st=starts();
+  if(anyClipSound()){const st=starts();
     S.segs.forEach((seg,i)=>{
-      const vids=seg.slots.slice(0,TPL[seg.tpl].n).map(sl=>({sl,m:mediaById(sl.m)})).filter(q=>q.m&&q.m.type==='video'&&q.m.abuf);
-      if(!vids.length)return;const gv=S.cVol/Math.sqrt(vids.length),t0=st[i],t1=t0+seg.dur;
-      vids.forEach(q=>{const g=oc.createGain(),s=oc.createBufferSource(),ab=q.m.abuf;
+      if(seg.card)return;const all=seg.slots.slice(0,TPL[seg.tpl].n).map(sl=>({sl,m:mediaById(sl.m)})).filter(q=>q.m&&q.m.type==='video'),vids=all.filter(q=>q.m.abuf&&slVol(q.sl)>0);
+      if(!vids.length)return;const nv=vids.length,t0=st[i],t1=t0+seg.dur;
+      vids.forEach(q=>{const gv=slVol(q.sl)/Math.sqrt(nv),g=oc.createGain(),s=oc.createBufferSource(),ab=q.m.abuf;
         g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(gv,t0+.04);g.gain.setValueAtTime(gv,Math.max(t0+.04,t1-.06));g.gain.linearRampToValueAtTime(0,t1);
         s.buffer=ab;s.loop=true;s.connect(g);g.connect(comp);s.start(t0,q.sl.start%ab.duration);s.stop(t1)})})}
   return oc.startRendering()}
@@ -1396,7 +1405,7 @@ function routeDrop(list){
   if(au)loadMusicFile(au);if(rest.length)addFiles(rest)}
 $('#audioIn').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)loadMusicFile(f)});
 $('#mVol').addEventListener('input',e=>{S.mVol=+e.target.value/100;if(volNode)volNode.gain.value=S.mVol;renderSound()});
-$('#cVol').addEventListener('input',e=>{S.cVol=+e.target.value/100;renderSound();dirty=true});
+$('#cVol').addEventListener('input',e=>{S.cVol=+e.target.value/100;renderSound();renderInspector();dirty=true});
 $('#fadeChk').addEventListener('change',e=>{S.fade=e.target.checked;if(S.playing)audioStart(S.t);drawWave()});
 $('#beatChk').addEventListener('change',e=>{
   if(e.target.checked){S.sync=true;applySync();afterEdit();toast('Scenes now cut on the beat.')}
@@ -1595,10 +1604,10 @@ async function renderFastRun(f){
   const isMp4=f.id==='mp4',M=isMp4?window.Mp4Muxer:window.WebMMuxer,target=new M.ArrayBufferTarget();
   /* audio: mix music and clip sound into one track first, then check the browser can encode it */
   let mix=null,acfg=null,aMode=null;
-  if(S.music||S.cVol>0){
+  if(S.music||anyClipSound()){
     try{
       $('#exTitle').textContent='Mixing the audio';
-      if(S.cVol>0){$('#exText').textContent='Reading the sound of your clips...';await prepClipAudio()}
+      if(anyClipSound()){$('#exText').textContent='Reading the sound of your clips...';await prepClipAudio()}
       if(X.cancel)return true;
       $('#exText').textContent='Mixing the audio...';mix=await renderMix(total);
     }catch(e){console.error(e);mix=null}
